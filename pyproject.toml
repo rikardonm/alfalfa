@@ -1,0 +1,62 @@
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+name = "alfalfa"
+dynamic = ["version"]
+description = ''
+readme = "README.md"
+requires-python = ">=3.12"
+license = "MIT"
+keywords = []
+authors = [
+  { name = "Ricardo Marchesan", email = "ricardo@azevem.com" },
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: PyPy",
+]
+dependencies = [
+  "lobs",
+]
+
+[project.urls]
+Documentation = "https://github.com/rikardonm/alfalfa#readme"
+Issues = "https://github.com/rikardonm/alfalfa/issues"
+Source = "https://github.com/rikardonm/alfalfa"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/alfalfa/version.py"
+
+[tool.hatch.envs.types]
+extra-dependencies = [
+  "mypy>=1.0.0",
+]
+[tool.hatch.envs.types.scripts]
+check = "mypy --install-types --non-interactive {args:src/alfalfa tests}"
+
+[tool.coverage.run]
+source_pkgs = ["alfalfa", "tests"]
+branch = true
+parallel = true
+omit = [
+  "src/alfalfa/version.py",
+]
+
+[tool.coverage.paths]
+alfalfa = ["src/alfalfa", "*/alfalfa/src/alfalfa"]
+tests = ["tests", "*/alfalfa/tests"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "no cov",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+]

@@ -1,0 +1,31 @@
+FROM espressif/idf:release-v5.5
+
+ARG DEBIAN_FRONTEND=nointeractive
+
+RUN apt-get update \
+   && apt install -y -q \
+   hwdata \
+   libglib2.0-0 \
+   libnuma1 \
+   libpixman-1-0 \
+   linux-tools-virtual \
+   clang \
+   clangd \
+   cppcheck \
+   udev \
+   && rm -rf /var/lib/apt/lists/*
+
+RUN update-alternatives --install /usr/local/bin/usbip usbip `ls /usr/lib/linux-tools/*/usbip | tail -n1` 20
+
+ENV LC_ALL=C.UTF-8
+ENV LANG=C.UTF-8
+
+#RUN ls -al /opt/esp/idf/*
+#RUN /bin/bash source /opt/esp/idf/export.sh && python3 -m pip install --upgrade idf-component-manager
+#RUN python3 -m pip install --upgrade idf-component-manager
+
+RUN echo "source /opt/esp/idf/export.sh > /dev/null 2>&1" >> ~/.bashrc
+
+ENTRYPOINT [ "/opt/esp/entrypoint.sh" ]
+
+CMD ["/bin/bash"]

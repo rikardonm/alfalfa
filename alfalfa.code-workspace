@@ -1,0 +1,51 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "tests/esp32-idf/"
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"*.toml": "ini",
+		},
+		"files.exclude": {
+			"**/.git": true,
+			"**/.svn": true,
+			"**/.hg": true,
+			"**/CVS": true,
+			"**/.DS_Store": true,
+			"**/Thumbs.db": true,
+			"**/.pio": false,
+			"**/build": true,
+			"**/.cache": true,
+			"__pycache__": true,
+			"**/*.pyc": true,
+		},
+		"explorer.excludeGitIgnore": false,
+		"editor.matchBrackets": "always",
+		"editor.codeLens": true,
+		"editor.guides.indentation": true,
+		"editor.stickyScroll.enabled": true,
+		"editor.tabSize": 4,
+		"editor.renderWhitespace": "all",
+		"files.trimTrailingWhitespace": true,
+		"editor.rulers": [
+			80,
+			120
+		],
+		"editor.bracketPairColorization.enabled": true,
+		"editor.guides.bracketPairs": "active",
+		"idf.adapterTargetName": "esp32",
+		"idf.flashType": "UART",
+		"idf.port": "/dev/ttyUSB1",
+		"idf.monitorBaudRate": "115200",
+		"git.enabled": false,
+		"cSpell.words": [
+		],
+		"cSpell.enabled": true,
+		"C_Cpp.intelliSenseEngine": "default"
+	}
+}
