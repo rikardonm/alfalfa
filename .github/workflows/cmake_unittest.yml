@@ -1,0 +1,32 @@
+on:
+  workflow_call:
+    inputs:
+      project-path:
+        required: true
+        type: string
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      build-dir-name: build
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          submodules: 'false'
+      - name: Configure cmake build directory
+        working-directory: ${{ inputs.project-path }}
+        run: cmake -B ${{ env.build-dir-name }}
+        env:
+          CXX: g++-14
+      - name: Build project
+        working-directory: ${{ inputs.project-path }}
+        env:
+          CXX: g++-14
+        run: cmake --build ${{ env.build-dir-name }} -j `nproc`
+      - name: Run unit tests
+        working-directory: ${{ inputs.project-path }}/${{ env.build-dir-name }}
+        run: ctest --output-on-failure -T Test

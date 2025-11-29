@@ -1,0 +1,94 @@
+on:
+    workflow_call:
+        inputs:
+            project-path:
+                required: true
+                type: string
+            app-name:
+                required: true
+                type: string
+            esp-idf-version:
+                required: true
+                type: string
+            build-command-args:
+                required: false
+                default: ""
+                type: string
+            artifacts-path:
+                required: false
+                default: ""
+                type: string
+            compress-artifacts:
+                required: false
+                default: false
+                type: boolean
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        env:
+            idf-config-sh:       /opt/esp/idf/export.sh
+            app-path:            /app/${{ github.repository }}/${{ inputs.project-path }}
+            build-directory:     /app/${{ github.repository }}/${{ inputs.project-path }}/build
+            artifacts-directory: /artifacts
+        container:
+          image: espressif/idf:${{ inputs.esp-idf-version }}
+          volumes:
+            - ${{ github.workspace }}:/app/${{ github.repository }}
+        defaults:
+          run:
+            shell: bash
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                submodules: 'false'
+                fetch-depth: '0'
+            - name: Ignore dubious git ownership
+              run: git config --global --add safe.directory /app/${{ github.repository }}
+            - name: Execute git describe
+              run: git describe
+              working-directory: ${{ env.app-path }}
+            - name: Execute git describe 2
+              run: git describe --tags
+              working-directory: ${{ env.app-path }}
+            - name: Prepare output directory
+              run: mkdir -p ${{ env.artifacts-directory }}
+            - name: Patch our IDF release
+              run: patch -N -i /app/${{ github.repository }}/i2c_timeout.patch /opt/esp/idf/components/driver/i2c.c
+            - name: Build project
+              working-directory: ${{ env.app-path }}
+              run: >
+                source ${{ env.idf-config-sh }}
+                && idf.py build ${{ inputs.build-command-args }}
+            - name: Copy artifacts
+              if: ${{ inputs.artifacts-path != '' }}
+              run: |
+                export SRCFILE=`ls ${{ env.build-directory }}/*.bin | grep -v -e ota_data_initial`
+                echo "Set SRCFILE to ${SRCFILE}"
+                cp -- "${SRCFILE}" ${{ env.artifacts-directory }}/${{ inputs.app-name }}.bin
+                cp -- "${SRCFILE%.bin}.elf" ${{ env.artifacts-directory }}/${{ inputs.app-name }}.elf
+                cp -- "${SRCFILE%.bin}.map" ${{ env.artifacts-directory }}/${{ inputs.app-name }}.map
+                echo "Files in artifacts directory:"
+                ls -l ${{ env.artifacts-directory }}
+                echo "Files in build directory:"
+                ls -l ${{ env.build-directory }}
+            - name: Compress artifacts
+              if: ${{ inputs.artifacts-path != '' && inputs.compress-artifacts }}
+              run: >
+                tar -czvf ${{ env.artifacts-directory }}/${{ inputs.app-name }}.tar.gz
+                ${{ env.app-path }}/sdkconfig
+                ${{ env.artifacts-directory }}/${{ inputs.app-name }}.bin
+                ${{ env.artifacts-directory }}/${{ inputs.app-name }}.elf
+                ${{ env.artifacts-directory }}/${{ inputs.app-name }}.map
+                ${{ env.build-directory }}/bootloader/bootloader.bin
+                ${{ env.build-directory }}/partition_table/partition-table.bin
+                ${{ env.build-directory }}/ota_data_initial.bin
+            - name: List collected artifacts
+              if: ${{ inputs.artifacts-path != '' }}
+              run: ls -l ${{ env.artifacts-directory }}
+            - name: Upload artifacts
+              uses: actions/upload-artifact@v4
+              with:
+                name: ${{ inputs.app-name }}
+                path: |
+                  ${{ env.artifacts-directory }}/${{ inputs.app-name }}.bin
+                  ${{ env.artifacts-directory }}/${{ inputs.app-name }}.tar.gz

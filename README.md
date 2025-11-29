@@ -19,6 +19,25 @@ This is a library for embedded systems (and maybe more).
 pip install alfalfa
 ```
 
+## Tree Structure
+
+
+```mermaid
+mindmap
+    root(Alfalfa)
+        Hardware Abstraction Layer (hal)
+            Internal Peripherals
+        Board Abstraction Layer (bal)
+            Devices & Buses
+        Operating System Abstraction Layer (oal)
+            Implementations
+                ESP32 IDF
+                Linux
+            Timing Control
+```
+
+
+
 ## License
 
 `alfalfa` is distributed under the terms of the [MIT](https://spdx.org/licenses/MIT.html) license.

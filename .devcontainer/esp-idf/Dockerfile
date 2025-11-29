@@ -20,6 +20,15 @@ RUN update-alternatives --install /usr/local/bin/usbip usbip `ls /usr/lib/linux-
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
 
+RUN apt-get update \
+    && apt-get install -y    software-properties-common \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN add-apt-repository ppa:deadsnakes/ppa \
+    && apt-get update \
+    && apt-get install -y python3.13-full python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+
 #RUN ls -al /opt/esp/idf/*
 #RUN /bin/bash source /opt/esp/idf/export.sh && python3 -m pip install --upgrade idf-component-manager
 #RUN python3 -m pip install --upgrade idf-component-manager

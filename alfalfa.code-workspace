@@ -10,6 +10,7 @@
 	"settings": {
 		"files.associations": {
 			"*.toml": "ini",
+			"sdkconfig*": "kconfig"
 		},
 		"files.exclude": {
 			"**/.git": true,
@@ -23,6 +24,7 @@
 			"**/.cache": true,
 			"__pycache__": true,
 			"**/*.pyc": true,
+			"**/lobs-project": true,
 		},
 		"explorer.excludeGitIgnore": false,
 		"editor.matchBrackets": "always",
@@ -46,6 +48,10 @@
 		"cSpell.words": [
 		],
 		"cSpell.enabled": true,
-		"C_Cpp.intelliSenseEngine": "default"
+		"C_Cpp.intelliSenseEngine": "default",
+		// https://github.com/microsoft/vscode-cmake-tools/discussions/3212
+		"flake8.args": [
+			"--line-length=120"
+		]
 	}
 }

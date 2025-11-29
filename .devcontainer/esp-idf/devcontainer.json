@@ -15,7 +15,12 @@
 					"ms-vscode.cpptools-extension-pack",
 					"streetsidesoftware.code-spell-checker",
 					"NathanJ.cppcheck-plugin",
-					"DanielBreiner.go-to-relative"
+					"DanielBreiner.go-to-relative",
+					"ms-python.black-formatter",
+					"ms-python.flake8",
+					"ms-python.isort",
+					"ms-python.python",
+					"ms-python.vscode-pylance"
 				],
 				"settings": {
 					"terminal.integrated.defaultProfile.linux": "bash",
