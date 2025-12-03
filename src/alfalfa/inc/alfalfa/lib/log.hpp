@@ -24,6 +24,11 @@ namespace logging
         Verbose = 5
     };
 
+    namespace internal
+    {
+        extern bool enabled;
+    }
+
     const std::string& ToString(const LogLevel level);
     const std::string& ToLogString(const LogLevel level);
 
@@ -32,15 +37,9 @@ namespace logging
     alfalfa::ErrorCode SetLevel(const LogLevel value);
 
     std::ostream& GetStdout();
+    void SetStdout(std::shared_ptr<std::ostream> output_device);
 
-    namespace Internal
-    {
-        extern LogLevel current_level;
-        extern bool enabled;
-        extern std::shared_ptr<std::ostream> output_device;
-    } /* namespace Internal */
-
-    namespace Implementation
+    namespace implementation
     {
         void SetLevel(const LogLevel value);
         uint32_t GetTimestamp();
@@ -112,13 +111,9 @@ namespace logging
             LogImpl(static_cast<std::underlying_type_t<T>>(message));
         }
 
-        /**
-         * @brief Shorthand logging function mapped to Serial.println.
-         *
-         */
-        void LogImplln();
+        void LogImplLn();
 
-    } /* namespace Implementation */
+    }
 
     alfalfa::ErrorCode SetLevel(const LogLevel value);
     LogLevel GetCurrentLevel();
@@ -213,7 +208,7 @@ inline void LogDirect()
 template<typename T, typename... Args>
 inline void LogDirect(T&& value, Args&&... args)
 {
-    alfalfa::logging::Implementation::LogImpl(std::forward<T>(value));
+    alfalfa::logging::implementation::LogImpl(std::forward<T>(value));
     LogDirect(std::forward<Args>(args)...);
 }
 
@@ -221,7 +216,7 @@ template<typename... Args>
 inline void LoglnDirect(Args&&... args)
 {
     LogDirect(std::forward<Args>(args)...);
-    alfalfa::logging::Implementation::LogImplln();
+    alfalfa::logging::implementation::LogImplLn();
 }
 
 
@@ -232,7 +227,7 @@ inline void Log()
 template<typename... Args>
 inline void Log(Args&&... args)
 {
-    if (alfalfa::logging::Internal::enabled)
+    if (alfalfa::logging::internal::enabled)
     {
         LogDirect(std::forward<Args>(args)...);
     }
@@ -241,7 +236,7 @@ inline void Log(Args&&... args)
 template<typename... Args>
 inline void Logln(Args&&... args)
 {
-    if (alfalfa::logging::Internal::enabled)
+    if (alfalfa::logging::internal::enabled)
     {
         LoglnDirect(std::forward<Args>(args)...);
     }
@@ -256,14 +251,14 @@ namespace logging
     template<typename... Args>
     inline void Logger::Write(LogLevel level, Args&&... args) const
     {
-        if (level > GetCurrentLevel() or not Internal::enabled)
+        if (level > GetCurrentLevel() or not internal::enabled)
         {
             return;
         }
-        const auto ts = alfalfa::logging::Implementation::GetTimestamp();
+        const auto ts = alfalfa::logging::implementation::GetTimestamp();
         Log(ts, " [", ToLogString(level), "] ", _header, ": ", std::forward<Args>(args)...);
         // Log(std::forward<Args>(args)...);
-        alfalfa::logging::Implementation::LogImplln();
+        alfalfa::logging::implementation::LogImplLn();
     }
 
 }

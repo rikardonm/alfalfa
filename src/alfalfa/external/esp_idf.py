@@ -15,12 +15,25 @@ class Framework(lobs.Package, tag="esp-idf-framework"):
     """Whether C++ exceptions are enabled."""
     cpp_exceptions_pool_size = lobs.Parameter[int | None](default=None)
     """Size of the emergency pool for C++ exceptions, in bytes. If None, uses the default value."""
+    compiler_optimization_level = lobs.Parameter[t.Literal['none', 'debug', 'size', 'perf'] | None](default=None)
+    """Compiler optimization level for the bootloader."""
+    cpu_default_frequency_mhz = lobs.Parameter[t.Literal['80MHz', '160MHz', '240MHz'] | None](default=None)
+    """Default CPU core frequency."""
+    cpu_target = lobs.Parameter[t.Literal['esp32', 'esp32s2', 'esp32s3', 'esp32c3', 'esp32c2', 'esp32c6', 'esp32h2']](default='esp32')
+    """Target CPU architecture."""
+    bootloader_rollback_enabled = lobs.Parameter[bool](default=False)
+    """Whether bootloader rollback protection is enabled."""
+    bootloader_log_level = lobs.Parameter[t.Literal['none', 'error', 'warn', 'info', 'debug', 'verbose'] | None](default='warn')
+    """Bootloader log verbosity level."""
+    bootloader_compiler_optimization_level = lobs.Parameter[t.Literal['none', 'debug', 'size', 'perf'] | None](default='size')
+    """Compiler optimization level for the bootloader."""
 
     app = lobs.cpp.project.SimpleLibrary()
 
     def get_exporter_configuration(self, config_type: type[lobs.exporter.TCFG], gen_path: lobs.Path) -> lobs.exporter.TCFG | None:
         assert config_type is esp_idf.EspIdfConfig
         cfg = config_type()
+
         if not isinstance(self.nvs_table.value, nvs.Table):
             raise NotImplementedError("Only custom NVS table configurations are supported at the moment.")
         else:
@@ -39,6 +52,7 @@ class Framework(lobs.Package, tag="esp-idf-framework"):
                 "CONFIG_PARTITION_TABLE_OFFSET": lambda offset=offset: hex(offset),  # 32kiB seems to be default
                 "CONFIG_PARTITION_TABLE_MD5": True,
             })
+
         if mem_size := self.memory_size.value:
             if isinstance(mem_size, str):
                 size_mib = int(mem_size[:-2])
@@ -61,6 +75,67 @@ class Framework(lobs.Package, tag="esp-idf-framework"):
             cfg.config_flags.update({"CONFIG_COMPILER_CXX_EXCEPTIONS": True})
             if pool_size := self.cpp_exceptions_pool_size.value:
                 cfg.config_flags.update({"CONFIG_COMPILER_CXX_EXCEPTIONS_EMG_POOL_SIZE": pool_size})
+
+        # Compiler optimization level
+        if v := self.compiler_optimization_level.value:
+            cfg.config_flags.update({
+                "CONFIG_BOOTLOADER_COMPILER_OPTIMIZATION_DEBUG": v == 'debug',
+                "CONFIG_BOOTLOADER_COMPILER_OPTIMIZATION_SIZE": v == 'size',
+                "CONFIG_BOOTLOADER_COMPILER_OPTIMIZATION_PERF": v == 'perf',
+                "CONFIG_BOOTLOADER_COMPILER_OPTIMIZATION_NONE": v == 'none',
+            })
+
+        # CPU core frequency
+        if True:
+            v = self.cpu_default_frequency_mhz.value
+            if isinstance(v, float):
+                v = int(v)
+            cfg.config_flags.update({
+                "CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_80": v == 80e6 or v == '80MHz',
+                "CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_160": v == 160e6 or v == '160MHz',
+                "CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240": v == 240e6 or v == '240MHz',
+                "CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ": v if isinstance(v, int) else 0,
+            })
+
+        # CPU target
+        if True:
+            v = self.cpu_target.value
+            cfg.config_flags.update({
+                "CONFIG_IDF_TARGET_ESP32": v == 'esp32',
+                "CONFIG_IDF_TARGET_ESP32S2": v == 'esp32s2',
+                "CONFIG_IDF_TARGET_ESP32S3": v == 'esp32s3',
+                "CONFIG_IDF_TARGET_ESP32C3": v == 'esp32c3',
+                "CONFIG_IDF_TARGET_ESP32C2": v == 'esp32c2',
+                "CONFIG_IDF_TARGET_ESP32C6": v == 'esp32c6',
+                "CONFIG_IDF_TARGET_ESP32H2": v == 'esp32h2',
+                "CONFIG_IDF_TARGET": v,
+            })
+
+        # Bootloader rollback protection
+        if self.bootloader_rollback_enabled.value:
+            cfg.config_flags.update({
+                "CONFIG_BOOTLOADER_ROLLBACK_PROT": True,
+            })
+
+        if v := self.bootloader_log_level.value:
+            idx = ['none', 'error', 'warn', 'info', 'debug', 'verbose'].index(v)
+            cfg.config_flags.update({
+                "CONFIG_BOOTLOADER_LOG_LEVEL_NONE": v == 'none',
+                "CONFIG_BOOTLOADER_LOG_LEVEL_ERROR": v == 'error',
+                "CONFIG_BOOTLOADER_LOG_LEVEL_WARN": v == 'warn',
+                "CONFIG_BOOTLOADER_LOG_LEVEL_INFO": v == 'info',
+                "CONFIG_BOOTLOADER_LOG_LEVEL_DEBUG": v == 'debug',
+                "CONFIG_BOOTLOADER_LOG_LEVEL_VERBOSE": v == 'verbose',
+                "CONFIG_BOOTLOADER_LOG_LEVEL": idx,
+            })
+
+        if v := self.bootloader_compiler_optimization_level.value:
+            cfg.config_flags.update({
+                "CONFIG_BOOTLOADER_COMPILER_OPTIMIZATION_NONE": v == 'none',
+                "CONFIG_BOOTLOADER_COMPILER_OPTIMIZATION_DEBUG": v == 'debug',
+                "CONFIG_BOOTLOADER_COMPILER_OPTIMIZATION_SIZE": v == 'size',
+                "CONFIG_BOOTLOADER_COMPILER_OPTIMIZATION_PERF": v == 'perf',
+            })
 
         return cfg
 

@@ -31,8 +31,14 @@ class Package(
         proj = lobs.cpp.project.SimpleLibrary(
             public_includes=[_cd / "inc"],
             source_files=[
+                src / "abm" / "console.cpp",
+                src / "bal" / "ina3221.cpp",
                 src / "bal" / "led.cpp",
+                src / "bal" / "mcp23017.cpp",
+                src / "hal" / "two_wire.cpp",
                 src / "lib" / "types" / "triplet-version.cpp",
+                src / "lib" / "log.cpp",
+                src / "oal" / "timekeeper.cpp",
             ],
             linked_libraries=[
                 alfalfa.external.nlohmann_json.NlohmannJsonPackage,
