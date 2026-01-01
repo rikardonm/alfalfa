@@ -82,26 +82,35 @@ namespace MCP23017
 
         // We will ALWAYS (because we can) use BANK = 0
         auto iocon = Registers::IOCON{.seqop = true, .bank = false};
-        auto x = alfalfa::hal::two_wire::transactions::WriteBuilder::Start(_ax_address)
-            .Send(static_cast<std::byte>(RegisterMapBank0::IOCON))
-            .Send(std::byte{iocon.ToByte()});
+
+        namespace t = alfalfa::hal::two_wire::trx;
+        auto x = t::CollectionBuilder(
+            t::StartWrite(_ax_address),
+            t::Write<2>({static_cast<std::byte>(RegisterMapBank0::IOCON), iocon.ToByte()})
+        );
         _wire->Execute(x);
     }
 
     void _Base::ReInit()
     {
         // We will ALWAYS (because we can) use BANK = 0
-        auto x = alfalfa::hal::two_wire::transactions::WriteBuilder::Start(_ax_address)
-            .Send(static_cast<std::byte>(RegisterMapBank0::IOCON))
-            .Send(std::byte{0x00});
+        namespace t = alfalfa::hal::two_wire::trx;
+        auto x = t::CollectionBuilder(
+            t::StartWrite(_ax_address),
+            t::Write<2>({static_cast<std::byte>(RegisterMapBank0::IOCON), std::byte{0x00}})
+        );
         _wire->Execute(x);
     }
 
     void UniformBusOutput::Configure(const Port port, alfalfa::hal::dio::OutputConfiguration config)
     {
-        auto x = alfalfa::hal::two_wire::transactions::WriteBuilder::Start(_ax_address)
-            .Send(static_cast<std::byte>(port == Port::A ? RegisterMapBank0::IODIRA : RegisterMapBank0::IODIRB))
-            .Send(std::byte{0x00}); // All outputs
+        namespace t = alfalfa::hal::two_wire::trx;
+        auto x = t::CollectionBuilder(
+            t::StartWrite(_ax_address),
+            t::Write<2>({
+                static_cast<std::byte>(port == Port::A ? RegisterMapBank0::IODIRA : RegisterMapBank0::IODIRB),
+                std::byte{0x00} // All outputs
+        }));
         _wire->Execute(x);
     }
 
@@ -115,9 +124,13 @@ namespace MCP23017
             b_data >>= 1;
             b_data |= it ? 0x80 : 0x00;
         }
-        auto x = alfalfa::hal::two_wire::transactions::WriteBuilder::Start(_ax_address)
-            .Send(static_cast<std::byte>(port == Port::A ? RegisterMapBank0::GPIOA : RegisterMapBank0::GPIOB))
-            .Send(std::byte{b_data});
+        namespace t = alfalfa::hal::two_wire::trx;
+        auto x = t::CollectionBuilder(
+            t::StartWrite(_ax_address),
+            t::Write<2>({
+               static_cast<std::byte>(port == Port::A ? RegisterMapBank0::GPIOA : RegisterMapBank0::GPIOB),
+                std::byte{b_data}
+        }));
         _wire->Execute(x);
     }
 

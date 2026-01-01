@@ -27,6 +27,7 @@ class Framework(lobs.Package, tag="esp-idf-framework"):
     """Bootloader log verbosity level."""
     bootloader_compiler_optimization_level = lobs.Parameter[t.Literal['none', 'debug', 'size', 'perf'] | None](default='size')
     """Compiler optimization level for the bootloader."""
+    # ESP_CONSOLE_USB_SERIAL_JTAG && ESP_CONSOLE_UART_DEFAULT
 
     app = lobs.cpp.project.SimpleLibrary()
 
@@ -34,24 +35,33 @@ class Framework(lobs.Package, tag="esp-idf-framework"):
         assert config_type is esp_idf.EspIdfConfig
         cfg = config_type()
 
-        if not isinstance(self.nvs_table.value, nvs.Table):
-            raise NotImplementedError("Only custom NVS table configurations are supported at the moment.")
-        else:
-            nvs_table_path = gen_path / "partitions.csv"
-            self.nvs_table.value.export(nvs_table_path)
-            offset = self.nvs_table.value.offset or 0x8000
-            cfg.config_flags.update({
-                # Explicitly disable "pre-baked" partitions
-                "CONFIG_PARTITION_TABLE_SINGLE_APP": False,
-                "CONFIG_PARTITION_TABLE_SINGLE_APP_LARGE": False,
-                "CONFIG_PARTITION_TABLE_TWO_OTA": False,
-                # Enable and configure custom
-                "CONFIG_PARTITION_TABLE_CUSTOM": True,
-                "CONFIG_PARTITION_TABLE_CUSTOM_FILENAME": nvs_table_path,
-                "CONFIG_PARTITION_TABLE_FILENAME": nvs_table_path,
-                "CONFIG_PARTITION_TABLE_OFFSET": lambda offset=offset: hex(offset),  # 32kiB seems to be default
-                "CONFIG_PARTITION_TABLE_MD5": True,
-            })
+        match self.nvs_table.value:
+            case None:
+                raise ValueError("NVS table configuration must be specified.")
+            case 'single-app':
+                cfg.config_flags.update({
+                    "CONFIG_PARTITION_TABLE_SINGLE_APP": True,
+                    "CONFIG_PARTITION_TABLE_SINGLE_APP_LARGE": False,
+                    "CONFIG_PARTITION_TABLE_TWO_OTA": False,
+                })
+            case nvs.Table():
+                nvs_table_path = gen_path / "partitions.csv"
+                self.nvs_table.value.export(nvs_table_path)
+                offset = self.nvs_table.value.offset or 0x8000
+                cfg.config_flags.update({
+                    # Explicitly disable "pre-baked" partitions
+                    "CONFIG_PARTITION_TABLE_SINGLE_APP": False,
+                    "CONFIG_PARTITION_TABLE_SINGLE_APP_LARGE": False,
+                    "CONFIG_PARTITION_TABLE_TWO_OTA": False,
+                    # Enable and configure custom
+                    "CONFIG_PARTITION_TABLE_CUSTOM": True,
+                    "CONFIG_PARTITION_TABLE_CUSTOM_FILENAME": nvs_table_path,
+                    "CONFIG_PARTITION_TABLE_FILENAME": nvs_table_path,
+                    "CONFIG_PARTITION_TABLE_OFFSET": lambda offset=offset: hex(offset),  # 32kiB seems to be default
+                    "CONFIG_PARTITION_TABLE_MD5": True,
+                })
+            case _:
+                raise NotImplementedError(f"Unsupported NVS table configuration: {self.nvs_table.value}")
 
         if mem_size := self.memory_size.value:
             if isinstance(mem_size, str):

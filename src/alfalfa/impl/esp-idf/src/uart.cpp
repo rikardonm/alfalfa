@@ -41,11 +41,13 @@ namespace uart
         uart_set_baudrate(_uart_num, baudrate);
     };
 
-    UartStreamSink::~UartStreamSink() = default;
-
     void UartStreamSink::WriteFrom(const std::byte& data)
     {
-        uart_write_bytes(_uart_num, reinterpret_cast<const char*>(&data), 1);
+        const auto len = uart_write_bytes(_uart_num, reinterpret_cast<const char*>(&data), 1);
+        if (len < 0)
+        {
+            throw std::runtime_error("Failed to write data to UART");
+        }
     };
 
     void UartStreamSink::WriteFrom(const std::span<const std::byte> data)
@@ -61,8 +63,6 @@ namespace uart
             throw std::runtime_error("Failed to write data to UART");
         }
     };
-
-    UartStreamSource::~UartStreamSource() = default;
 
     std::optional<std::byte> UartStreamSource::ReadOne()
     {
@@ -80,7 +80,7 @@ namespace uart
 
     bool UartStreamSource::ReadInto(std::span<std::byte> target)
     {
-        auto ret =uart_read_bytes(_uart_num, target.data(), target.size_bytes(), 0);
+        auto ret = uart_read_bytes(_uart_num, target.data(), target.size_bytes(), 0);
         return ret != 0;
     };
 

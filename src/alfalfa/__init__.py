@@ -35,7 +35,6 @@ class Package(
                 src / "bal" / "ina3221.cpp",
                 src / "bal" / "led.cpp",
                 src / "bal" / "mcp23017.cpp",
-                src / "hal" / "two_wire.cpp",
                 src / "lib" / "types" / "triplet-version.cpp",
                 src / "lib" / "log.cpp",
                 src / "oal" / "timekeeper.cpp",

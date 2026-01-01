@@ -24,7 +24,7 @@ namespace two_wire
             const Units::Second timeout = 10_ms);
 
         virtual ~BusMaster();
-        void Execute(transactions::_BuildContainer& builder) override;
+        void Execute(trx::Collection collection) override;
 
     private:
         i2c_master_bus_handle_t bus_handle;

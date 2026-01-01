@@ -23,33 +23,41 @@ namespace bal
 
     uint16_t Ina3221::ReadRegister(const std::optional<uint8_t> addr) const
     {
+        namespace t = alfalfa::hal::two_wire::trx;
         std::array<std::byte, 2> buff;
         if (addr.has_value())
         {
-            auto x = alfalfa::hal::two_wire::transactions::WriteBuilder::Start(_address)
-                .Send(std::byte{addr.value()})
-                .RestartRead(std::nullopt)
-                .Into(std::span{buff});
+            auto x = t::CollectionBuilder(
+                t::StartWrite(_address),
+                t::Write<1>({std::byte{addr.value()}}),
+                t::StartRead(_address),
+                t::Read<2>()
+            );
             _module->Execute(x);
+            buff = std::get<3>(x.container);
         }
         else
         {
-            auto x = alfalfa::hal::two_wire::transactions::ReadBuilder::Start(_address)
-                .Into(std::span{buff});
+            auto x = t::CollectionBuilder(
+                t::StartRead(_address),
+                t::Read<2>()
+            );
             _module->Execute(x);
+            buff = std::get<1>(x.container);
         }
         return std::to_integer<uint16_t>(buff[0]) << 8 | std::to_integer<uint16_t>(buff[1]);
     }
 
     void Ina3221::WriteRegister(const uint8_t addr, const uint16_t value) const
     {
-        std::array buff = {
+        namespace t = alfalfa::hal::two_wire::trx;
+        auto x = t::CollectionBuilder(
+            t::StartWrite(_address),
+            t::Write<3>({
             std::byte{static_cast<uint8_t>(addr)},
             std::byte{static_cast<uint8_t>(value >> 8)},
             std::byte{static_cast<uint8_t>(value & 0xFF)}
-        };
-        auto x = alfalfa::hal::two_wire::transactions::WriteBuilder::Start(_address)
-            .Send(std::span{buff});
+        }));
         _module->Execute(x);
     }
 

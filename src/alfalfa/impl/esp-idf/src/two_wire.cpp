@@ -74,90 +74,94 @@ namespace two_wire
         i2c_del_master_bus(bus_handle);
     }
 
-    void BusMaster::Execute(transactions::_BuildContainer& builder)
+    void BusMaster::Execute(trx::Collection collection)
     {
+        const auto terminate_read = [](std::vector<i2c_operation_job_t>& jobs){
+            if (jobs.size() == 0)
+            {
+                return;
+            }
+            if (jobs.back().command != I2C_MASTER_CMD_READ)
+            {
+                return;
+            }
+            auto& og_read = jobs.back().read;
+            if (og_read.ack_value == I2C_NACK_VAL)
+            {
+                return;
+            }
+            if (og_read.total_bytes == 1)
+            {
+                og_read.ack_value = I2C_NACK_VAL;
+                return;
+            }
+            og_read.total_bytes -= 1;
+            jobs.emplace_back(i2c_operation_job_t{
+                .command = I2C_MASTER_CMD_READ,
+                .read = {
+                    .ack_value = I2C_NACK_VAL,
+                    .data = og_read.data + og_read.total_bytes,
+                    .total_bytes = 1
+                }
+            });
+        };
+
         std::vector<i2c_operation_job_t> jobs;
-        jobs.reserve(builder._collection.size());
-        for (auto& item : builder._collection)
+        jobs.reserve(collection.commands.size());
+        for (auto& item : collection.commands)
         {
+            if (not std::holds_alternative<trx::_ReadCommand>(item))
+            {
+                terminate_read(jobs);
+            }
+
             if (std::holds_alternative<trx::_WriteCommand>(item))
             {
-                auto& cmd = std::get<trx::_WriteCommand>(item);
-                if (std::holds_alternative<const std::byte>(cmd.data))
-                {
-                    auto& data = std::get<const std::byte>(cmd.data);
-                    jobs.emplace_back(i2c_operation_job_t{
-                        .command = I2C_MASTER_CMD_WRITE,
-                        .write = {
-                            .ack_check = false,
-                            .data = reinterpret_cast<uint8_t*>(const_cast<std::byte*>(&data)),
-                            .total_bytes = 1
-                        }
-                    });
-                }
-                else if (std::holds_alternative<const std::span<const std::byte>>(cmd.data))
-                {
-                    auto& data = std::get<const std::span<const std::byte>>(cmd.data);
-                    jobs.emplace_back(i2c_operation_job_t{
-                        .command = I2C_MASTER_CMD_WRITE,
-                        .write = {
-                            .ack_check = false,
-                            .data = reinterpret_cast<uint8_t*>(const_cast<std::byte*>(data.data())),
-                            .total_bytes = data.size()
-                        }
-                    });
-                }
-                else
-                {
-                    throw std::invalid_argument("Invalid TwoWire WriteCommand data variant");
-                }
+                auto& data = std::get<trx::_WriteCommand>(item).data;
+                jobs.emplace_back(i2c_operation_job_t{
+                    .command = I2C_MASTER_CMD_WRITE,
+                    .write = {
+                        .ack_check = false,
+                        .data = reinterpret_cast<uint8_t*>(const_cast<std::byte*>(data.data())),
+                        .total_bytes = data.size()
+                    }
+                });
             }
             else if (std::holds_alternative<trx::_ReadCommand>(item))
             {
                 auto& data = std::get<trx::_ReadCommand>(item).data;
                 auto data_ptr = const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(data.data()));
-                if (data.size() == 1)
-                {
-                    jobs.emplace_back(i2c_operation_job_t{
-                        .command = I2C_MASTER_CMD_READ,
-                        .read = {
-                            .ack_value = I2C_NACK_VAL,
-                            .data = data_ptr,
-                            .total_bytes = data.size()
-                        }
-                    });
-                }
-                else
-                {
-                    const auto plen = data.size() - 1;
-                    jobs.emplace_back(i2c_operation_job_t{
-                        .command = I2C_MASTER_CMD_READ,
-                        .read = {
-                            .ack_value = I2C_ACK_VAL,
-                            .data = data_ptr,
-                            .total_bytes = plen
-                        }
-                    });
-                    jobs.emplace_back(i2c_operation_job_t{
-                        .command = I2C_MASTER_CMD_READ,
-                        .read = {
-                            .ack_value = I2C_NACK_VAL,
-                            .data = data_ptr + plen,
-                            .total_bytes = 1
-                        }
-                    });
-                }
+                jobs.emplace_back(i2c_operation_job_t{
+                    .command = I2C_MASTER_CMD_READ,
+                    .read = {
+                        .ack_value = I2C_ACK_VAL,
+                        .data = data_ptr,
+                        .total_bytes = data.size()
+                    }
+                });
             }
-            else if (std::holds_alternative<trx::_StartCommand>(item))
+            else if (std::holds_alternative<trx::Start>(item))
             {
                 jobs.emplace_back(i2c_operation_job_t{.command = I2C_MASTER_CMD_START, .write = {}});
+                auto& start = std::get<trx::Start>(item);
+                jobs.emplace_back(i2c_operation_job_t{
+                    .command = I2C_MASTER_CMD_WRITE,
+                    .write = {
+                        .ack_check = false,
+                        .data = reinterpret_cast<uint8_t*>(const_cast<std::byte*>(&start.address_command)),
+                        .total_bytes = 1
+                    }
+                });
+            }
+            else if (std::holds_alternative<trx::Stop>(item))
+            {
+                jobs.emplace_back(i2c_operation_job_t{.command = I2C_MASTER_CMD_STOP, .write = {}});
             }
             else
             {
                 throw std::invalid_argument("Invalid TwoWire transaction command variant");
             }
         }
-        jobs.emplace_back(i2c_operation_job_t{.command = I2C_MASTER_CMD_STOP, .write = {}});
 
         auto err = i2c_master_execute_defined_operations(
             dev_handle,

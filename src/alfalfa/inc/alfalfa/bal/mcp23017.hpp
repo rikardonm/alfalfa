@@ -51,9 +51,18 @@ namespace MCP23017
             /// @brief BANK - Controls how the registers are addressed. 1 = The registers associated with each port are separated into different banks. 0 = The registers are in the same bank (addresses are sequential).
             bool bank = false;
 
-            uint8_t ToByte() const
+            std::byte ToByte() const
             {
-                return (intpol << 1) | (odr << 2) | (haen << 3) | (disslew << 4) | (seqop << 5) | (mirror << 6) | (bank << 7);
+                return
+                    std::byte{0x00}
+                    | (intpol ? std::byte{0x02} : std::byte{0x00}) // << 1)
+                    | (odr ? std::byte{0x04} : std::byte{0x00}) // << 2)
+                    | (haen ? std::byte{0x08} : std::byte{0x00}) // << 3)
+                    | (disslew ? std::byte{0x10} : std::byte{0x00}) // << 4)
+                    | (seqop ? std::byte{0x20} : std::byte{0x00}) // << 5)
+                    | (mirror ? std::byte{0x40} : std::byte{0x00}) // << 6)
+                    | (bank ? std::byte{0x80} : std::byte{0x00}) // << 7)
+                ;
             };
         };
     } /* namespace Registers */

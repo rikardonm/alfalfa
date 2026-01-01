@@ -26,8 +26,8 @@ namespace uart
             const uart_port_t module_num,
             const ::alfalfa::hal::Pin tx_pin,
             const ::alfalfa::hal::Pin rx_pin,
-            const uint32_t tx_queue_size = 1024,
-            const uint32_t rx_queue_size = 1024);
+            const uint32_t tx_queue_size = 512,
+            const uint32_t rx_queue_size = 512);
 
         virtual ~Module() override;
 
@@ -42,7 +42,7 @@ namespace uart
     {
     public:
         UartStreamSink(uart_port_t uart_num) : _uart_num(uart_num) {}
-        virtual ~UartStreamSink() override;
+        virtual ~UartStreamSink() override = default;
         virtual void WriteFrom(const std::byte& data) override;
         virtual void WriteFrom(const std::span<const std::byte> data) override;
     private:
@@ -53,7 +53,7 @@ namespace uart
     {
     public:
         UartStreamSource(uart_port_t uart_num) : _uart_num(uart_num) {}
-        virtual ~UartStreamSource() override;
+        virtual ~UartStreamSource() override = default;
         virtual std::optional<std::byte> ReadOne() override;
         virtual bool ReadInto(std::span<std::byte> target) override;
     private:

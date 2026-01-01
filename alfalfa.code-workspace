@@ -4,7 +4,7 @@
 			"path": "."
 		},
 		{
-			"path": "tests/esp32-idf/"
+			"path": "tests/esp32-c3/"
 		}
 	],
 	"settings": {

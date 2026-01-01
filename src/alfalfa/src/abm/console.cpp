@@ -32,9 +32,6 @@ namespace console
         _out_stream = std::make_shared<std::ostream>(_sink_adapter.get());
     };
 
-// #if defined(CONFIG_AZAL_CONSOLE_ENABLE)
-#if 1
-
     void Console::AddFunction(std::string name, CommandFunctionTypePtr function)
     {
         commands.emplace(name, function);
@@ -81,18 +78,6 @@ namespace console
             rx.clear();
         }
     }
-
-#else
-
-    void Console::AddFunction(std::string name, CommandFunctionTypePtr function)
-    {
-    }
-
-    void Console::ConsoleTask()
-    {
-    }
-
-#endif
 
     void Console::Help()
     {
@@ -155,7 +140,15 @@ namespace console
             return;
         }
         /* If the command was found, call it */
-        cmdptr->second(*_in_stream, *_out_stream, cli);
+        try
+        {
+            cmdptr->second(*_in_stream, *_out_stream, cli);
+        }
+        catch(const std::exception& e)
+        {
+            *_out_stream << "Error executing command " << command << ": " << e.what() << '\n';
+        }
+
     }
 
 }

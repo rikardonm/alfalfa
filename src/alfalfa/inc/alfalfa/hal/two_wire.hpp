@@ -7,6 +7,7 @@
 #include <exception>
 #include <optional>
 #include <variant>
+#include <type_traits>
 
 #include <alfalfa/lib/types/units/all.hpp>
 #include <alfalfa/hal/pin.hpp>
@@ -40,71 +41,128 @@ namespace two_wire
         {}
     };
 
-    namespace transactions
+    namespace trx
     {
-        class WriteBuilder;
-        class ReadBuilder;
+        struct Start
+        {
+            // This is the address value already shifted
+            std::byte address_command;
+        };
 
-        struct _StartCommand
+        inline Start StartWrite(std::byte address)
+        {
+            return {address << 1};
+        }
+
+        inline Start StartWrite(uint8_t address)
+        {
+            return {std::byte{address} << 1};
+        }
+
+        inline Start StartRead(std::byte address)
+        {
+            return {(address << 1) | std::byte{0x01}};
+        }
+
+        inline Start StartRead(uint8_t address)
+        {
+            return {(std::byte{address} << 1) | std::byte{0x01}};
+        }
+
+        template<std::size_t LEN>
+        struct Write : public std::array<std::byte, LEN>
+        {
+        };
+
+        struct WriteFrom
+        {
+            const std::span<const std::byte> source;
+        };
+
+        template<std::size_t LEN>
+        struct Read : public std::array<std::byte, LEN>
+        {
+        };
+
+        struct ReadInto
+        {
+            std::span<std::byte> target;
+        };
+
+        struct Stop
         {
         };
 
         struct _WriteCommand
         {
-            // std::variant<const std::byte, const std::span<std::byte>, const std::array<const std::byte, 8>> data;
-            std::variant<const std::byte, const std::span<const std::byte>> data;
+            const std::span<const std::byte> data;
         };
+
         struct _ReadCommand
         {
             std::span<std::byte> data;
         };
 
-        using Collection = std::vector<std::variant<_StartCommand, _WriteCommand, _ReadCommand>>;
-
-        struct _BuildContainer
+        template<typename... Args>
+        struct CollectionBuilder
         {
-            friend class _BaseBuilder;
-            _BuildContainer();
-
-            Collection _collection;
-            std::byte _last_address;
-        };
-
-        struct _BaseBuilder
-        {
-            friend class alfalfa::hal::two_wire::iBusMaster;
-
-            _BaseBuilder();
-            _BaseBuilder(_BuildContainer&& builder);
-            WriteBuilder RestartWrite(std::optional<std::byte> address);
-            ReadBuilder RestartRead(std::optional<std::byte> address);
-
-            void MakeAddress(const std::optional<std::byte> address, bool read_not_write);
-
-        protected:
-            _BuildContainer _container;
-        };
-
-        struct WriteBuilder : public _BaseBuilder
-        {
-            static WriteBuilder Start(std::byte address)
+            CollectionBuilder(Args... args)
+            : container(std::make_tuple(std::forward<Args>(args)...))
             {
-                return _BaseBuilder().RestartWrite(address);
             }
-            WriteBuilder& Send(const std::byte data);
-            WriteBuilder& Send(const std::span<const std::byte> data);
+
+            std::tuple<Args...> container;
         };
 
-        struct ReadBuilder : public _BaseBuilder
+        struct Collection
         {
-            static ReadBuilder Start(std::byte address)
+            template<typename... Args>
+            Collection(CollectionBuilder<Args...>& builder)
+            : commands()
             {
-                return _BaseBuilder().RestartRead(address);
+                commands.reserve(sizeof...(Args));
+                std::apply([this](auto&&... args){((this->Add(args)), ...);}, builder.container);
+                if (not std::holds_alternative<Stop>(commands.back()))
+                {
+                    commands.push_back(Stop());
+                }
             }
-            ReadBuilder& Into(std::span<std::byte> target);
+
+            void Add(Start& cmd)
+            {
+                commands.push_back(cmd);
+            }
+
+            template<std::size_t LEN>
+            void Add(Write<LEN>& cmd)
+            {
+                commands.push_back(_WriteCommand{.data = std::span(cmd)});
+            }
+
+            void Add(WriteFrom& cmd)
+            {
+                commands.push_back(_WriteCommand({.data = cmd.source}));
+            }
+
+            template<std::size_t LEN>
+            void Add(Read<LEN>& cmd)
+            {
+                commands.push_back(_ReadCommand({.data = std::span(cmd)}));
+            }
+
+            void Add(ReadInto& cmd)
+            {
+                commands.push_back(_ReadCommand{.data = cmd.target});
+            }
+
+            void Add(Stop& cmd)
+            {
+                commands.push_back(cmd);
+            }
+
+            std::vector<std::variant<Start, _WriteCommand, _ReadCommand, Stop>> commands;
         };
 
-        struct PreparedTransaction;
     }
 
     /**
@@ -118,10 +176,11 @@ namespace two_wire
     {
         virtual ~iBusMaster() = default;
 
-        virtual void Execute(transactions::_BuildContainer& builder) = 0;
-        void Execute(transactions::_BaseBuilder& builder)
+        virtual void Execute(trx::Collection collection) = 0;
+        template<typename... Args>
+        void Execute(trx::CollectionBuilder<Args...>& builder)
         {
-            Execute(builder._container);
+            Execute(trx::Collection(builder));
         }
     };
 
