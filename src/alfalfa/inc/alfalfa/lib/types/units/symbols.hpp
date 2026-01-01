@@ -85,6 +85,7 @@ namespace Units
         const char Giga = 'G';
         const char Mega = 'M';
         const char Kilo = 'k';
+        const char Hecto = 'h';
         // Unity
         const char Milli = 'm';
         const char Micro = 'u';
@@ -99,6 +100,7 @@ namespace Units
                 case 9:         return Giga;
                 case 6:         return Mega;
                 case 3:         return Kilo;
+                case 2:         return Hecto;
                 // case 0:         return " ";
                 case -3:        return Milli;
                 case -6:        return Micro;
@@ -116,6 +118,7 @@ namespace Units
                 case Giga:       return 1e9;
                 case Mega:       return 1e6;
                 case Kilo:       return 1e3;
+                case Hecto:       return 1e2;
                 case Milli:       return 1e-3;
                 case Micro:       return 1e-6;
                 case Nano:       return 1e-9;
@@ -143,6 +146,10 @@ namespace Units
             if (std::ratio_equal_v<std::ratio<Nx, Dx>, std::kilo>)
             {
                 return Kilo;
+            }
+            if (std::ratio_equal_v<std::ratio<Nx, Dx>, std::hecto>)
+            {
+                return Hecto;
             }
             if (std::ratio_equal_v<std::ratio<Nx, Dx>, std::milli>)
             {
