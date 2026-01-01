@@ -365,13 +365,13 @@ struct std::formatter<T>
 
     constexpr auto parse(std::format_parse_context& ctx)
     {
-        auto _first = ctx.begin();
+        auto _first = ctx.begin();  // should point to the starting "{"
         const auto _last = std::ranges::find(ctx, '}');
         const auto _pipe = std::min(std::ranges::find(ctx, '|'), _last);
         // We create a new view to remove our own format specifiers
-        if (_first != _pipe)
+        if ((_first + 1) != _pipe)
         {
-            auto ctx2 = std::format_parse_context(std::string_view(_first, _pipe - 1));
+            auto ctx2 = std::format_parse_context(std::string_view(_first, _pipe));
             auto ret = double_fmt.parse(ctx2);
             if (_pipe > _last)
             {
@@ -381,6 +381,7 @@ struct std::formatter<T>
         _first = _pipe;
         if (*_first == '}')
         {
+            // as it turns out, we didn't have any pipes after all!
             return _first;
         }
         // Remove our pipe indicator, resulting in "x"
