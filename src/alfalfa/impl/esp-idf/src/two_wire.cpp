@@ -9,7 +9,6 @@ auto logger = ::alfalfa::logging::Logger("TwoWire");
 
 using namespace Units::Literals;
 
-namespace trx = alfalfa::hal::two_wire::transactions;
 
 namespace alfalfa
 {

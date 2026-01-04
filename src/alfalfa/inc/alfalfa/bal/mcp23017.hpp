@@ -28,8 +28,33 @@ namespace MCP23017
 
     enum class Port
     {
-        A = 0x00,
-        B = 0x01,
+        A,
+        B,
+    };
+
+    enum class RegisterMap : uint8_t
+    {
+        IODIRA   = 0x00,
+        IODIRB   = 0x01,
+        IPOLA    = 0x02,
+        IPOLB    = 0x03,
+        GPINTENA = 0x04,
+        GPINTENB = 0x05,
+        DEFVALA  = 0x06,
+        DEFVALB  = 0x07,
+        INTCONA  = 0x08,
+        INTCONB  = 0x09,
+        IOCON    = 0x0A,
+        GPPUA    = 0x0C,
+        GPPUB    = 0x0D,
+        INTFA    = 0x0E,
+        INTFB    = 0x0F,
+        INTCAPA  = 0x10,
+        INTCAPB  = 0x11,
+        GPIOA    = 0x12,
+        GPIOB    = 0x13,
+        OLATA    = 0x14,
+        OLATB    = 0x15,
     };
 
     namespace Registers
@@ -55,43 +80,112 @@ namespace MCP23017
             {
                 return
                     std::byte{0x00}
-                    | (intpol ? std::byte{0x02} : std::byte{0x00}) // << 1)
-                    | (odr ? std::byte{0x04} : std::byte{0x00}) // << 2)
-                    | (haen ? std::byte{0x08} : std::byte{0x00}) // << 3)
-                    | (disslew ? std::byte{0x10} : std::byte{0x00}) // << 4)
-                    | (seqop ? std::byte{0x20} : std::byte{0x00}) // << 5)
-                    | (mirror ? std::byte{0x40} : std::byte{0x00}) // << 6)
-                    | (bank ? std::byte{0x80} : std::byte{0x00}) // << 7)
+                    | (intpol ? std::byte{0x02} : std::byte{0x00})
+                    | (odr ? std::byte{0x04} : std::byte{0x00})
+                    | (haen ? std::byte{0x08} : std::byte{0x00})
+                    | (disslew ? std::byte{0x10} : std::byte{0x00})
+                    | (seqop ? std::byte{0x20} : std::byte{0x00})
+                    | (mirror ? std::byte{0x40} : std::byte{0x00})
+                    | (bank ? std::byte{0x80} : std::byte{0x00})
                 ;
             };
         };
     } /* namespace Registers */
 
-    class _Base
+    struct Base
     {
-    public:
-        _Base(
+        Base(
             std::shared_ptr<alfalfa::hal::two_wire::iBusMaster> i2c_module,
             const bool a2,
             const bool a1,
             const bool a0,
             std::optional<std::shared_ptr<alfalfa::hal::dio::iOutput>> reset_n = {});
-
         void ReInit();
 
-    protected:
+        void WriteRegister(const RegisterMap reg, const std::byte value);
+        void WriteRegisterMasked(const RegisterMap reg, const std::byte value, const std::byte mask);
+        std::byte ReadRegister(const RegisterMap reg);
+        std::byte ReadRegisterMasked(const RegisterMap reg, const std::byte mask);
+
+        void ReadSpan(const RegisterMap reg, std::span<std::byte> out_value);
+        void WriteSpan(const RegisterMap reg, const std::span<const std::byte> value);
+
+        template<std::size_t N>
+        std::array<std::byte, N> ReadArray(const RegisterMap reg)
+        {
+            std::array<std::byte, N> ret{};
+            ReadSpan(reg, std::span<std::byte>(ret.data(), N));
+            return ret;
+        }
+
+        void FlushCacheAndRead();
+
         std::shared_ptr<alfalfa::hal::two_wire::iBusMaster> _wire;
         std::optional<std::shared_ptr<alfalfa::hal::dio::iOutput>> _reset_n;
         const std::byte _ax_address;
+
+        std::array<std::byte, 0x16> _register_cache;
+        bool _immediate_trx;
+
+        struct _Flusher
+        {
+            _Flusher(Base& parent)
+                : _parent(parent)
+            {
+                _parent._immediate_trx = false;
+            }
+            ~_Flusher()
+            {
+                _parent._immediate_trx = true;
+                _parent.FlushCacheAndRead();
+            }
+            Base& _parent;
+        };
+
+        _Flusher DelayFlush()
+        {
+            return _Flusher(*this);
+        }
     };
 
-    class UniformBusOutput : public _Base
+    struct UniformBusOutput
     {
-    public:
-        using _Base::_Base;
+        UniformBusOutput(
+            std::shared_ptr<Base> base,
+            const Port port);
+        void Configure(alfalfa::hal::dio::OutputConfiguration config);
+        void Write(const BusData& values);
 
-        void Configure(const Port port, alfalfa::hal::dio::OutputConfiguration config);
-        void Write(const Port port, const BusData& values);
+        const Port port;
+        std::shared_ptr<Base> base;
+    };
+
+    struct OutputPin : public alfalfa::hal::dio::iOutput
+    {
+        OutputPin(
+            std::shared_ptr<Base> base,
+            const Port port,
+            const uint8_t index);
+        virtual void Configure(alfalfa::hal::dio::OutputConfiguration config) override;
+        virtual void Write(bool value) const override;
+
+        const Port _port;
+        const std::byte _mask;
+        std::shared_ptr<Base> _base;
+    };
+
+    struct InputPin : public alfalfa::hal::dio::iInput
+    {
+        InputPin(
+            std::shared_ptr<Base> base,
+            const Port port,
+            const uint8_t index);
+        virtual void Configure(alfalfa::hal::dio::InputConfiguration config) override;
+        virtual bool Read() const override;
+
+        const Port _port;
+        const std::byte _mask;
+        std::shared_ptr<Base> _base;
     };
 
 }
