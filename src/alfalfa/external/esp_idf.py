@@ -30,6 +30,8 @@ class Framework(lobs.Package, tag="esp-idf-framework"):
     # ESP_CONSOLE_USB_SERIAL_JTAG && ESP_CONSOLE_UART_DEFAULT
     driver_default_log_level = lobs.Parameter[t.Literal['none', 'error', 'warn', 'info', 'debug', 'verbose'] | None](default='warn')
     """Driver log verbosity level."""
+    main_task_stack_size = lobs.Parameter[int | None](default=None)
+    """Main task stack size in bytes."""
 
     app = lobs.cpp.project.SimpleLibrary()
 
@@ -162,6 +164,9 @@ class Framework(lobs.Package, tag="esp-idf-framework"):
                 "CONFIG_LOG_MAXIMUM_EQUALS_DEFAULT": True,
                 "CONFIG_LOG_MAXIMUM_LEVEL": idx,
             })
+
+        if v := self.main_task_stack_size.value:
+            cfg.config_flags["CONFIG_ESP_MAIN_TASK_STACK_SIZE"] = v
 
         return cfg
 
