@@ -14,6 +14,10 @@ namespace bal
 
     void LED::Set(bool state)
     {
+        if (state == _last)
+        {
+            return;
+        }
         _output->Write(state != _low_side);
         _last = state;
     }
