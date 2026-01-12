@@ -28,6 +28,8 @@ class Framework(lobs.Package, tag="esp-idf-framework"):
     bootloader_compiler_optimization_level = lobs.Parameter[t.Literal['none', 'debug', 'size', 'perf'] | None](default='size')
     """Compiler optimization level for the bootloader."""
     # ESP_CONSOLE_USB_SERIAL_JTAG && ESP_CONSOLE_UART_DEFAULT
+    driver_default_log_level = lobs.Parameter[t.Literal['none', 'error', 'warn', 'info', 'debug', 'verbose'] | None](default='warn')
+    """Driver log verbosity level."""
 
     app = lobs.cpp.project.SimpleLibrary()
 
@@ -145,6 +147,20 @@ class Framework(lobs.Package, tag="esp-idf-framework"):
                 "CONFIG_BOOTLOADER_COMPILER_OPTIMIZATION_DEBUG": v == 'debug',
                 "CONFIG_BOOTLOADER_COMPILER_OPTIMIZATION_SIZE": v == 'size',
                 "CONFIG_BOOTLOADER_COMPILER_OPTIMIZATION_PERF": v == 'perf',
+            })
+
+        if v := self.driver_default_log_level.value:
+            idx = ['none', 'error', 'warn', 'info', 'debug', 'verbose'].index(v)
+            cfg.config_flags.update({
+                "CONFIG_LOG_DEFAULT_LEVEL_NONE": v == 'none',
+                "CONFIG_LOG_DEFAULT_LEVEL_ERROR": v == 'error',
+                "CONFIG_LOG_DEFAULT_LEVEL_WARN": v == 'warn',
+                "CONFIG_LOG_DEFAULT_LEVEL_INFO": v == 'info',
+                "CONFIG_LOG_DEFAULT_LEVEL_DEBUG": v == 'debug',
+                "CONFIG_LOG_DEFAULT_LEVEL_VERBOSE": v == 'verbose',
+                "CONFIG_LOG_DEFAULT_LEVEL": idx,
+                "CONFIG_LOG_MAXIMUM_EQUALS_DEFAULT": True,
+                "CONFIG_LOG_MAXIMUM_LEVEL": idx,
             })
 
         return cfg
