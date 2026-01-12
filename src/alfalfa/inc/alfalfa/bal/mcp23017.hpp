@@ -131,15 +131,17 @@ namespace MCP23017
         {
             _Flusher(Base& parent)
                 : _parent(parent)
+                , _initial_immediate_trx(parent._immediate_trx)
             {
                 _parent._immediate_trx = false;
             }
             ~_Flusher()
             {
-                _parent._immediate_trx = true;
+                _parent._immediate_trx = _initial_immediate_trx;
                 _parent.FlushCacheAndRead();
             }
             Base& _parent;
+            const bool _initial_immediate_trx;
         };
 
         _Flusher DelayFlush()

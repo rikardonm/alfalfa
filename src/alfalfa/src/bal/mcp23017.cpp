@@ -52,9 +52,9 @@ namespace MCP23017
         if (_reset_n.has_value())
         {
             _reset_n.value()->Write(false);
-            Timekeeper::DumbDelay(10_us);
+            Timekeeper::DumbDelay(1_ms);
             _reset_n.value()->Write(true);
-            Timekeeper::DumbDelay(10_us);
+            Timekeeper::DumbDelay(1_ms);
         }
 
         // We will ALWAYS (because we can) use BANK = 0
