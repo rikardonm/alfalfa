@@ -43,7 +43,7 @@ namespace Units
         #pragma pop_macro("_V")
         #pragma pop_macro("_mV")
         #pragma pop_macro("_uV")
-    } /* namespace Literals */
+    }
 
 
     using Ampere = _Unit<PhysicalQuantity::Ampere>;
@@ -69,7 +69,7 @@ namespace Units
         {
             return Ampere(value, std::micro());
         }
-    } /* namespace Literals */
+    }
 
 
     using Watt = _Unit<PhysicalQuantity::Watt>;
@@ -95,6 +95,26 @@ namespace Units
         {
             return Watt(value, std::micro());
         }
-    } /* namespace Literals */
+    }
+
+    using Ohm = _Unit<PhysicalQuantity::Ohm>;
+
+    namespace Literals
+    {
+        constexpr Ohm operator""_kOhm(long double value)
+        {
+            return Ohm(value, std::kilo());
+        }
+
+        constexpr Ohm operator""_Ohm(long double value)
+        {
+            return Ohm(value);
+        }
+
+        constexpr Ohm operator""_mOhm(long double value)
+        {
+            return Ohm(value, std::milli());
+        }
+    }
 
 } /* namespace Units */

@@ -12,8 +12,10 @@ namespace alfalfa
 {
 namespace bal
 {
+namespace Ina3221
+{
 
-    Ina3221::Ina3221(
+    Module::Module(
         std::shared_ptr<alfalfa::hal::two_wire::iBusMaster> module,
         const alfalfa::hal::two_wire::AddressSelector address_selector)
         : _module(std::move(module))
@@ -21,7 +23,7 @@ namespace bal
     {
     }
 
-    uint16_t Ina3221::ReadRegister(const std::optional<uint8_t> addr) const
+    uint16_t Module::ReadRegister(const std::optional<uint8_t> addr) const
     {
         namespace t = alfalfa::hal::two_wire::trx;
         std::array<std::byte, 2> buff;
@@ -48,7 +50,7 @@ namespace bal
         return std::to_integer<uint16_t>(buff[0]) << 8 | std::to_integer<uint16_t>(buff[1]);
     }
 
-    void Ina3221::WriteRegister(const uint8_t addr, const uint16_t value) const
+    void Module::WriteRegister(const uint8_t addr, const uint16_t value) const
     {
         namespace t = alfalfa::hal::two_wire::trx;
         auto x = t::CollectionBuilder(
@@ -61,28 +63,28 @@ namespace bal
         _module->Execute(x);
     }
 
-    uint16_t Ina3221::ReadManufacturerId() const
+    uint16_t Module::ReadManufacturerId() const
     {
         return ReadRegister(0xFE);
     }
 
-    uint16_t Ina3221::ReadDieId() const
+    uint16_t Module::ReadDieId() const
     {
         return ReadRegister(0xFF);
     }
 
-    Units::Volt Ina3221::ReadBusVoltage(const uint8_t channel) const
+    Units::Volt Module::ReadBusVoltage(const Channel channel) const
     {
         uint8_t addr = 0;
         switch (channel)
         {
-            case 1:
+            case Channel::C1:
                 addr = 0x02;
                 break;
-            case 2:
+            case Channel::C2:
                 addr = 0x04;
                 break;
-            case 3:
+            case Channel::C3:
                 addr = 0x06;
                 break;
             default:
@@ -93,18 +95,18 @@ namespace bal
         return 8.0_mV * reg_value;
     }
 
-    Units::Volt Ina3221::ReadShuntVoltage(const uint8_t channel) const
+    Units::Volt Module::ReadShuntVoltage(const Channel channel) const
     {
         uint8_t addr = 0;
         switch (channel)
         {
-            case 1:
+            case Channel::C1:
                 addr = 0x01;
                 break;
-            case 2:
+            case Channel::C2:
                 addr = 0x03;
                 break;
-            case 3:
+            case Channel::C3:
                 addr = 0x05;
                 break;
             default:
@@ -115,7 +117,14 @@ namespace bal
         return 40.0_uV * reg_value;
     }
 
-    std::byte Ina3221::GetAddressForA0(const ::alfalfa::hal::two_wire::AddressSelector selector)
+    Units::Ampere Module::ReadShuntCurrent(const Channel channel, const Units::Ohm shunt_resistance) const
+    {
+        const auto shunt_voltage = ReadShuntVoltage(channel);
+        const auto current_value = shunt_voltage.UnderlyingValue() / shunt_resistance.UnderlyingValue();
+        return Units::Ampere(current_value);
+    }
+
+    std::byte Module::GetAddressForA0(const ::alfalfa::hal::two_wire::AddressSelector selector)
     {
         const std::byte value{0x40};
         switch (selector)
@@ -133,5 +142,6 @@ namespace bal
         }
     }
 
+}
 }
 }

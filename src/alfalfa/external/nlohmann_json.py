@@ -12,6 +12,7 @@ class NlohmannJsonPackage(
     version=Version(3, 12, 0),
     tag="nlohmann_json",
 ):
+    """nlohmann JSON for Modern C++ package"""
     def _prepare_files(self, basepath: Path):
         _provider = providers.DownloadablePackage(
             f"https://github.com/nlohmann/json/releases/download/v{self.version}/json.tar.xz"

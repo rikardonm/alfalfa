@@ -12,11 +12,20 @@ namespace alfalfa
 {
 namespace bal
 {
+namespace Ina3221
+{
 
-    class Ina3221
+    enum class Channel
+    {
+        C1,
+        C2,
+        C3,
+    };
+
+    class Module
     {
     public:
-        Ina3221(
+        Module(
             std::shared_ptr<alfalfa::hal::two_wire::iBusMaster> module,
             const alfalfa::hal::two_wire::AddressSelector address_selector);
 
@@ -24,8 +33,9 @@ namespace bal
         void WriteRegister(const uint8_t addr, const uint16_t value) const;
         uint16_t ReadManufacturerId() const;
         uint16_t ReadDieId() const;
-        Units::Volt ReadBusVoltage(const uint8_t channel) const;
-        Units::Volt ReadShuntVoltage(const uint8_t channel) const;
+        Units::Volt ReadBusVoltage(const Channel channel) const;
+        Units::Volt ReadShuntVoltage(const Channel channel) const;
+        Units::Ampere ReadShuntCurrent(const Channel channel, const Units::Ohm shunt_resistance) const;
         static std::byte GetAddressForA0(const ::alfalfa::hal::two_wire::AddressSelector selector);
 
     private:
@@ -33,5 +43,6 @@ namespace bal
         const std::byte _address;
     };
 
+}
 }
 }

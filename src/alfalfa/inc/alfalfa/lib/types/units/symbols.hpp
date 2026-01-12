@@ -34,7 +34,9 @@ namespace Units
         // Power
         Watt,
         // Mass
-        Gram
+        Gram,
+        // Electrical Resistance
+        Ohm
     };
 
     inline constexpr const char* GetSymbol(PhysicalQuantity unit)
@@ -65,6 +67,8 @@ namespace Units
             case PhysicalQuantity::Watt:                return "W";
             /* Mass */
             case PhysicalQuantity::Gram:                return "g";
+            /* Electrical Resistance */
+            case PhysicalQuantity::Ohm:                 return "Ohm";
             /* Unknown */
             default:                                    return "?";
         };
