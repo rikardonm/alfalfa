@@ -120,7 +120,7 @@ namespace two_wire
             Collection(CollectionBuilder<Args...>& builder)
             : commands()
             {
-                commands.reserve(sizeof...(Args));
+                commands.reserve(sizeof...(Args) + 1);
                 std::apply([this](auto&&... args){((this->Add(args)), ...);}, builder.container);
                 if (not std::holds_alternative<Stop>(commands.back()))
                 {
