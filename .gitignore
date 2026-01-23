@@ -17,3 +17,5 @@ sdkconfig
 CMakeLists.txt
 src/alfalfa/version.py
 lobs-project/
+lobs/
+
