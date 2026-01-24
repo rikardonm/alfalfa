@@ -11,7 +11,7 @@ class Main(lobs.Package):
         linked_libraries=[
             alfalfa.Package,
             _Board,
-        ]
+        ],
     )
 
 

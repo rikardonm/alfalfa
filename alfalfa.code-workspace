@@ -1,10 +1,12 @@
 {
 	"folders": [
 		{
-			"path": "."
+			"path": ".",
+			"name": "alfalfa"
 		},
 		{
-			"path": "tests/esp32-c3/"
+			"path": "tests/esp32-c3/",
+			"name": "esp32-c3"
 		}
 	],
 	"settings": {

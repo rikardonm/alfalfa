@@ -64,7 +64,7 @@ namespace bal
         _module->Execute(r);
         if (m_data.state & 0x80)
         {
-            Logln("BUSY!!");
+            // Logln("BUSY!!");
         }
         auto m_h = Units::Percent(((m_data.h_t_combo & 0x0F << 16)) | (m_data.h_msb << 8) | m_data.h_lsb);
         auto m_t = Units::Celsius((m_data.t_msb << 12) | (m_data.t_lsb << 4) | (m_data.h_t_combo >> 4));

@@ -35,6 +35,7 @@ class Package(
                 src / "bal" / "ads1x1x.cpp",
                 src / "bal" / "ina3221.cpp",
                 src / "bal" / "led.cpp",
+                src / "bal" / "mcp4725.cpp",
                 src / "bal" / "mcp23017.cpp",
                 src / "lib" / "types" / "triplet-version.cpp",
                 src / "lib" / "log.cpp",
