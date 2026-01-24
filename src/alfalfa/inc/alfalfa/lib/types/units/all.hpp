@@ -57,14 +57,14 @@ namespace Units
 
 /* Now specify the relationship between them */
 template<typename T, typename T2>
-inline T operator/(const T& lhs, const T2& rhs)
+constexpr inline T operator/(const T& lhs, const T2& rhs)
 requires Units::UnitConcept<T> and Units::UnitlessConcept<T2>
 {
     return T(lhs.UnderlyingValue() / rhs.UnderlyingValue());
 }
 
 template<typename T, typename T2>
-inline T operator/(const T& lhs, const T2& rhs)
+constexpr inline T operator/(const T& lhs, const T2& rhs)
 requires Units::BaseUnitsConcept<T> and (std::integral<T2> or std::floating_point<T2>)
 {
     return T(lhs.UnderlyingValue() / rhs);
@@ -72,7 +72,7 @@ requires Units::BaseUnitsConcept<T> and (std::integral<T2> or std::floating_poin
 
 
 template<typename T>
-inline std::string ToString(const T& unit)
+constexpr inline std::string ToString(const T& unit)
 requires Units::BaseUnitsConcept<T>
 {
     auto stream = std::stringstream();
@@ -83,14 +83,14 @@ requires Units::BaseUnitsConcept<T>
 namespace Units
 {
     template<typename T>
-    inline void to_json(nlohmann::json& json, const T& value)
+    constexpr inline void to_json(nlohmann::json& json, const T& value)
     requires Units::BaseUnitsConcept<T>
     {
         json = value.ToString();
     }
 
     template<typename T>
-    inline void from_json(const nlohmann::json& json, T& value)
+    constexpr inline void from_json(const nlohmann::json& json, T& value)
     requires Units::BaseUnitsConcept<T>
     {
         value = ::FromString<T>(json.get<std::string>());

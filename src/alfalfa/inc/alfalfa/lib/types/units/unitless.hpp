@@ -132,13 +132,13 @@ namespace Units
         /***********************************************************************************************************
          ***************************** Scalar Operations
          **********************************************************************************************************/
-        basetype operator*(const underlying_type& number) const
+        constexpr basetype operator*(const underlying_type& number) const
         {
             return basetype(baseclass::_value * number);
         }
 
         template<UnitlessSymbol OTHER_SYMBOL>
-        basetype operator*(const _Unitless<OTHER_SYMBOL>& other) const
+        constexpr basetype operator*(const _Unitless<OTHER_SYMBOL>& other) const
         {
             return basetype(baseclass::_value * other.UnderlyingValue());
         }
@@ -156,13 +156,13 @@ namespace Units
             return *this;
         }
 
-        basetype operator/(const underlying_type& number) const
+        constexpr basetype operator/(const underlying_type& number) const
         {
             return basetype(baseclass::_value / number);
         }
 
         template<UnitlessSymbol OTHER_SYMBOL>
-        basetype operator/(const _Unitless<OTHER_SYMBOL>& other) const
+        constexpr basetype operator/(const _Unitless<OTHER_SYMBOL>& other) const
         {
             return basetype(baseclass::_value / other.UnderlyingValue());
         }
