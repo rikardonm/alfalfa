@@ -5,6 +5,7 @@
 #include <span>
 #include <memory>
 #include <streambuf>
+#include <ranges>
 
 
 namespace alfalfa
@@ -25,6 +26,14 @@ namespace lib
 
         virtual void WriteFrom(const T& data) = 0;
         virtual void WriteFrom(const std::span<const T> data) = 0;
+
+        template<typename TT>
+        requires std::ranges::contiguous_range<TT>
+        void WriteFrom(TT& data)
+        {
+            const auto bytes = std::as_bytes(std::span(data));
+            WriteFrom(bytes);
+        }
     };
 
     /**
