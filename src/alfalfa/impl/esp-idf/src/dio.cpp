@@ -46,7 +46,15 @@ namespace dio
     {
         auto esp_num = static_cast<gpio_num_t>(_pin.IoIndex());
         gpio_reset_pin(esp_num);
-        gpio_set_direction(esp_num, GPIO_MODE_OUTPUT);
+        switch (config.type)
+        {
+            case OutputType::PushPull:
+                gpio_set_direction(esp_num, GPIO_MODE_OUTPUT);
+                break;
+            case OutputType::OpenDrain:
+                gpio_set_direction(esp_num, GPIO_MODE_OUTPUT_OD);
+                break;
+        }
         gpio_set_drive_capability(esp_num, GPIO_DRIVE_CAP_3);
     }
 

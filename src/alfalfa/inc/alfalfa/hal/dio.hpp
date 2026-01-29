@@ -25,8 +25,16 @@ namespace dio
         virtual bool Read() const = 0;
     };
 
+
+    enum class OutputType
+    {
+        PushPull,
+        OpenDrain
+    };
+
     struct OutputConfiguration
     {
+        OutputType type = OutputType::PushPull;
     };
 
     // Output digital I/O pin
