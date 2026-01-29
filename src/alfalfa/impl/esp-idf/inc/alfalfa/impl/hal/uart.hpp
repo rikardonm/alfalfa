@@ -24,8 +24,8 @@ namespace uart
     public:
         Module(
             const uart_port_t module_num,
-            const ::alfalfa::hal::Pin tx_pin,
-            const ::alfalfa::hal::Pin rx_pin,
+            const std::optional<::alfalfa::hal::Pin> tx_pin,
+            const std::optional<::alfalfa::hal::Pin> rx_pin,
             const uint32_t tx_queue_size = 512,
             const uint32_t rx_queue_size = 512);
 
