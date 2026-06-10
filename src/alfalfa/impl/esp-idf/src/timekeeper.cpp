@@ -27,7 +27,7 @@ namespace oal
 
     void TickBackoff::DelayUntilMark()
     {
-        vTaskDelayUntil(&_last_ts, _backoff);
+        (void) xTaskDelayUntil(&_last_ts, _backoff);
     }
 
     void TickBackoff::SetBackoff(const Units::Second value)

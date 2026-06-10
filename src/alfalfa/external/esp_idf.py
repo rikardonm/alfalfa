@@ -5,6 +5,11 @@ from lobs.exporters.esp_idf import exporter as esp_idf, nvs
 import alfalfa
 
 
+class FreeRTOSConfig:
+    tick_rate_hz = lobs.Parameter[int](default=1000)
+    """FreeRTOS tick rate in Hz."""
+
+
 class Framework(lobs.Package, tag="esp-idf-framework"):
     nvs_table = lobs.Parameter[nvs.Table | None | t.Literal['single-app', 'single-app-large']](default=None)
     """NVS partition table configuration.
@@ -32,6 +37,9 @@ class Framework(lobs.Package, tag="esp-idf-framework"):
     """Driver log verbosity level."""
     main_task_stack_size = lobs.Parameter[int | None](default=None)
     """Main task stack size in bytes."""
+
+    freertos_config = FreeRTOSConfig()
+    """FreeRTOS configuration parameters."""
 
     app = lobs.cpp.project.SimpleLibrary()
 
@@ -167,6 +175,9 @@ class Framework(lobs.Package, tag="esp-idf-framework"):
 
         if v := self.main_task_stack_size.value:
             cfg.config_flags["CONFIG_ESP_MAIN_TASK_STACK_SIZE"] = v
+
+        # FreeRTOS configuration
+        cfg.config_flags["CONFIG_FREERTOS_HZ"] = self.freertos_config.tick_rate_hz.value
 
         return cfg
 
