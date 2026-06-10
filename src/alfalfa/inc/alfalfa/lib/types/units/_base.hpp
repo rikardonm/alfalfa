@@ -193,7 +193,7 @@ namespace Units
             }
 
             template<typename T>
-            basetype operator*=(const T& number) const
+            basetype operator*=(const T& number)
             requires (std::integral<T> or std::floating_point<T>)
             {
                 BASECLASS::_value *= number;
@@ -201,7 +201,7 @@ namespace Units
             }
 
             template<typename T>
-            basetype operator*=(const T& other) const
+            basetype operator*=(const T& other)
             requires Units::UnitlessConcept<T>
             {
                 BASECLASS::_value *= other.UnderlyingValue();
