@@ -34,6 +34,7 @@ class Package(
                 src / "abm" / "console.cpp",
                 src / "bal" / "ads1x1x.cpp",
                 src / "bal" / "ina3221.cpp",
+                src / "bal" / "eeprom.cpp",
                 src / "bal" / "led.cpp",
                 src / "bal" / "mcp4725.cpp",
                 src / "bal" / "mcp23017.cpp",
