@@ -34,6 +34,7 @@ class Package(
                 src / "abm" / "console.cpp",
                 src / "bal" / "ads1x1x.cpp",
                 src / "bal" / "ina3221.cpp",
+                src / "bal" / "bmp280.cpp",
                 src / "bal" / "eeprom.cpp",
                 src / "bal" / "led.cpp",
                 src / "bal" / "mcp4725.cpp",
@@ -62,6 +63,6 @@ class Package(
     def get_exporter_configuration(self, config_type: type[lobs.exporter.TCFG], gen_path: lobs.Path) -> lobs.exporter.TCFG | None:
         if issubclass(config_type, lobs.exporters.esp_idf.EspIdfConfig):
             return config_type(
-                esp_components=['esp_timer', 'driver'],
+                esp_components=['esp_timer', 'driver', 'freertos'],
             )
         return None
