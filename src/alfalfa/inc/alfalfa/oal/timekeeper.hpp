@@ -25,6 +25,8 @@ namespace oal
         using basetype::MarkWithoutDrift;
         using basetype::isExpired;
         using basetype::Remark;
+        using basetype::SetBackoff;
+        using basetype::GetBackoff;
 
         TickBackoff(const Units::Second interval);
 
