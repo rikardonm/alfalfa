@@ -15,7 +15,6 @@ sdkconfig
 
 # Although strange, since the files are generated we don't keep 'em
 CMakeLists.txt
-src/alfalfa/version.py
+src/alfalfa/core/version.py
 lobs-project/
 lobs/
-

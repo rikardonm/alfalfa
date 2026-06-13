@@ -32,8 +32,11 @@ Source = "https://github.com/rikardonm/alfalfa"
 [tool.hatch.version]
 source = "vcs"
 
+[tool.hatch.build]
+packages = ["src/alfalfa"]
+
 [tool.hatch.build.hooks.vcs]
-version-file = "src/alfalfa/version.py"
+version-file = "src/alfalfa/core/version.py"
 
 [tool.hatch.envs.types]
 extra-dependencies = [
@@ -47,7 +50,7 @@ source_pkgs = ["alfalfa", "tests"]
 branch = true
 parallel = true
 omit = [
-  "src/alfalfa/version.py",
+  "src/alfalfa/core/version.py",
 ]
 
 [tool.coverage.paths]

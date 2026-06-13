@@ -2,7 +2,7 @@ import typing as t
 
 import lobs
 from lobs.exporters.esp_idf import exporter as esp_idf, nvs
-import alfalfa
+import alfalfa.core
 
 
 class FreeRTOSConfig:
@@ -182,4 +182,4 @@ class Framework(lobs.Package, tag="esp-idf-framework"):
         return cfg
 
 
-Framework.require(alfalfa.Package.implementation, "esp-idf")
+Framework.require(alfalfa.core.Package.implementation, "esp-idf")

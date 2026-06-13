@@ -9,7 +9,7 @@ import typing as t
 import annotated_types as ant
 import lobs.exporters
 
-import alfalfa.external.nlohmann_json
+import alfalfa.core.external.nlohmann_json
 
 from . import version
 
@@ -48,7 +48,7 @@ class Package(
                 src / "oal" / "timekeeper.cpp",
             ],
             linked_libraries=[
-                alfalfa.external.nlohmann_json.NlohmannJsonPackage,
+                alfalfa.core.external.nlohmann_json.NlohmannJsonPackage,
             ]
         )
 

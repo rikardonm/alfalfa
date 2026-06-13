@@ -1,6 +1,6 @@
 import lobs
-import alfalfa
-from alfalfa.external import esp_idf
+import alfalfa.core
+from alfalfa.core.external import esp_idf
 
 _cwd = lobs.Path(__file__).parent
 
@@ -10,9 +10,9 @@ class Board(lobs.Package):
 
     app = lobs.cpp.project.SimpleLibrary(
         public_includes=[_cwd / "inc"],
-        source_files=[ _cwd / "esp32_c3_super_mini.cpp"],
+        source_files=[_cwd / "esp32_c3_super_mini.cpp"],
         linked_libraries=[
-            alfalfa.Package,
+            alfalfa.core.Package,
             esp_idf.Framework,
         ]
     )
