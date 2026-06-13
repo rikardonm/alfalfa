@@ -1,4 +1,4 @@
-#include <alfalfa/impl/hal/dio.hpp>
+#include <alfalfa/impl/esp-idf/hal/dio.hpp>
 
 #include "driver/gpio.h"
 
@@ -7,8 +7,11 @@ namespace alfalfa
 {
 namespace hal
 {
+namespace impl
+{
 namespace dio
 {
+    using namespace alfalfa::hal::dio;
 
     Input::Input(::alfalfa::hal::Pin pin, const InputConfiguration config)
         : _pin(pin)
@@ -63,6 +66,7 @@ namespace dio
         gpio_set_level(static_cast<gpio_num_t>(_pin.IoIndex()), value);
     }
 
+}
 }
 }
 }

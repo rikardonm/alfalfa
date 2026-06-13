@@ -1,4 +1,4 @@
-#include <alfalfa/impl/hal/two_wire.hpp>
+#include <alfalfa/impl/esp-idf/hal/two_wire.hpp>
 
 #include <alfalfa/lib/log.hpp>
 #include <alfalfa/oal/timekeeper.hpp>

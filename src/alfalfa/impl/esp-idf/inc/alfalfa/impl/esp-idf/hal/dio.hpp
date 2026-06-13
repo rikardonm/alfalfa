@@ -9,8 +9,11 @@ namespace alfalfa
 {
 namespace hal
 {
+namespace impl
+{
 namespace dio
 {
+    using namespace alfalfa::hal::dio;
 
     class Input : public iInput
     {
@@ -34,6 +37,7 @@ namespace dio
         const alfalfa::hal::Pin _pin;
     };
 
+}
 }
 }
 }

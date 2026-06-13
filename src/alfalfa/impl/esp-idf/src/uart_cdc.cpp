@@ -1,4 +1,4 @@
-#include <alfalfa/impl/hal/uart_cdc.hpp>
+#include <alfalfa/impl/esp-idf/hal/uart_cdc.hpp>
 
 #include <cstdint>
 #include <span>
