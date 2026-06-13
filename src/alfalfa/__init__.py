@@ -25,6 +25,10 @@ class Package(
 ):
     implementation = lobs.Parameter[t.Literal["esp-idf", "linux"]](default=None)
     """The desired platform implementation to use."""
+    use_bitbang_drivers = lobs.Parameter[bool](default=False)
+    """Whether to use bitbang drivers for SPI and I2C.
+    This is useful for platforms that don't have hardware support for these protocols,
+    but can be used on any platform for testing purposes."""
 
     @t.override
     def _make_project(self, basepath: lobs.Path):
@@ -47,17 +51,24 @@ class Package(
                 alfalfa.external.nlohmann_json.NlohmannJsonPackage,
             ]
         )
-        assert isinstance(proj.source_files, list)
-        assert isinstance(proj.public_includes, list)
+
         match self.implementation.value:
             case "esp-idf":
-                impl_dir = "esp-idf"
+                impl_dir = ["esp-idf"]
             case "linux":
-                impl_dir = "linux"
+                impl_dir = ["linux"]
             case _:
                 raise ValueError(f"Unsupported Alfalfa implementation: {self.implementation.value}")
-        proj.source_files.extend(list((_cd / "impl" / impl_dir / "src").glob("*.cpp")))
-        proj.public_includes.append(_cd / "impl" / impl_dir / "inc")
+
+        if self.use_bitbang_drivers.value:
+            impl_dir.append("bitbang")
+
+        assert isinstance(proj.source_files, list)
+        assert isinstance(proj.public_includes, list)
+        for imp in impl_dir:
+            proj.source_files.extend(list((_cd / "impl" / imp / "src").glob("*.cpp")))
+            proj.public_includes.append(_cd / "impl" / imp / "inc")
+
         return proj
 
     def get_exporter_configuration(self, config_type: type[lobs.exporter.TCFG], gen_path: lobs.Path) -> lobs.exporter.TCFG | None:
