@@ -13,50 +13,55 @@ namespace bitbang
 {
 namespace spi
 {
-    Module::Module(
-        std::unique_ptr<::alfalfa::hal::dio::iInput>&& miso,
-        std::unique_ptr<::alfalfa::hal::dio::iOutput>&& mosi,
-        std::unique_ptr<::alfalfa::hal::dio::iOutput>&& clk,
+    Slave::Slave(
+        std::shared_ptr<Module> module,
+        std::unique_ptr<::alfalfa::hal::dio::iOutput>&& chip_select_n,
         uint32_t nop_multiplier)
-        : _miso(std::move(miso))
-        , _mosi(std::move(mosi))
-        , _clk(std::move(clk))
+        : _module(module)
+        , _chip_select_n(std::move(chip_select_n))
         , _nop_multiplier(nop_multiplier)
     {
+        _chip_select_n->Write(true);
     }
 
-    void Module::Transceive(const uint8_t data)
+    void Slave::Transceive(const uint8_t data)
     {
+        _chip_select_n->Write(false);
         Timekeeper::Nop(1 * _nop_multiplier);
         __WriteByte(data);
-        _clk->Write(false);
-        _mosi->Write(false);
+        _module->_clk->Write(false);
+        _module->_mosi->Write(false);
+        _chip_select_n->Write(true);
     }
 
-    void Module::Transceive(const uint8_t data, uint8_t& target)
+    void Slave::Transceive(const uint8_t data, uint8_t& target)
     {
+        _chip_select_n->Write(false);
         Timekeeper::Nop(1 * _nop_multiplier);
         target = __WriteByte(data);
-        _clk->Write(false);
-        _mosi->Write(false);
+        _module->_clk->Write(false);
+        _module->_mosi->Write(false);
+        _chip_select_n->Write(true);
     }
 
-    void Module::Transceive(const std::span<const uint8_t> data)
+    void Slave::Transceive(const std::span<const uint8_t> data)
     {
         if (data.size() == 0)
         {
             return;
         }
+        _chip_select_n->Write(false);
         Timekeeper::Nop(1 * _nop_multiplier);
         for (auto& byte : data)
         {
             std::ignore = __WriteByte(byte);
         }
-        _clk->Write(false);
-        _mosi->Write(false);
+        _module->_clk->Write(false);
+        _module->_mosi->Write(false);
+        _chip_select_n->Write(true);
     }
 
-    void Module::Transceive(const std::span<const uint8_t> data, std::span<uint8_t> target)
+    void Slave::Transceive(const std::span<const uint8_t> data, std::span<uint8_t> target)
     {
         if (data.size() == 0)
         {
@@ -68,40 +73,48 @@ namespace spi
         }
 
         Timekeeper::Nop(1 * _nop_multiplier);
+        _chip_select_n->Write(false);
         auto idx = 0;
         for (auto& byte : data)
         {
             target[idx] = __WriteByte(byte);
             idx++;
         }
-        _clk->Write(false);
-        _mosi->Write(false);
+        _module->_clk->Write(false);
+        _module->_mosi->Write(false);
+        _chip_select_n->Write(true);
     }
 
-    void Module::Flush()
-    {
-        return;
-    }
-
-    uint8_t Module::__WriteByte(uint8_t byte)
+    uint8_t Slave::__WriteByte(uint8_t byte)
     {
         uint8_t out = 0;
         for (int i = 0; i < 8; i++)
         {
-            _clk->Write(false);
-            _mosi->Write(byte & 0x80);
+            _module->_clk->Write(false);
+            _module->_mosi->Write(byte & 0x80);
             byte <<= 1;
             Timekeeper::Nop(1 * _nop_multiplier);
-            _clk->Write(true);
+            _module->_clk->Write(true);
             Timekeeper::Nop(1 * _nop_multiplier);
-            if (_miso)
+            if (_module->_miso)
             {
-                out |= (_miso->Read() ? 0x01 : 0x00);
+                out |= (_module->_miso->Read() ? 0x01 : 0x00);
                 out <<= 1;
             }
         }
         return out;
     }
+
+    Module::Module(
+        std::unique_ptr<::alfalfa::hal::dio::iInput>&& miso,
+        std::unique_ptr<::alfalfa::hal::dio::iOutput>&& mosi,
+        std::unique_ptr<::alfalfa::hal::dio::iOutput>&& clk)
+        : _miso(std::move(miso))
+        , _mosi(std::move(mosi))
+        , _clk(std::move(clk))
+    {
+    }
+
 }
 }
 }

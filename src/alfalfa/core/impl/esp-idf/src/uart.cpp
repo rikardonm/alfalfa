@@ -8,6 +8,8 @@ namespace alfalfa
 {
 namespace hal
 {
+namespace impl
+{
 namespace uart
 {
 
@@ -41,11 +43,11 @@ namespace uart
 
         if (tx_pin)
         {
-            _tx = std::make_shared<alfalfa::hal::uart::UartStreamSink>(_uart_num);
+            _tx = std::make_shared<alfalfa::hal::impl::uart::UartStreamSink>(_uart_num);
         }
         if (rx_pin)
         {
-            _rx = std::make_shared<alfalfa::hal::uart::UartStreamSource>(_uart_num);
+            _rx = std::make_shared<alfalfa::hal::impl::uart::UartStreamSource>(_uart_num);
         }
     }
 
@@ -102,6 +104,7 @@ namespace uart
         return ret != 0;
     };
 
+}
 }
 }
 }

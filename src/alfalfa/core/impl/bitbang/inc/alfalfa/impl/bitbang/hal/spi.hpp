@@ -18,9 +18,32 @@ namespace bitbang
 {
 namespace spi
 {
-    class Module : public ::alfalfa::hal::spi::iModule
+    class Module;
+
+    class Slave : public ::alfalfa::hal::spi::iSlave
     {
     public:
+        Slave(
+            std::shared_ptr<Module> module,
+            std::unique_ptr<::alfalfa::hal::dio::iOutput>&& chip_select_n,
+            uint32_t nop_multiplier = 1);
+        virtual ~Slave() override = default;
+        void Transceive(const uint8_t data) override;
+        void Transceive(const uint8_t data, uint8_t& target) override;
+        void Transceive(const std::span<const uint8_t> data) override;
+        void Transceive(const std::span<const uint8_t> data, std::span<uint8_t> target) override;
+    private:
+        std::shared_ptr<Module> _module;
+        std::unique_ptr<::alfalfa::hal::dio::iOutput> _chip_select_n;
+        const uint32_t _nop_multiplier;
+
+        uint8_t __WriteByte(uint8_t byte);
+    };
+
+    class Module
+    {
+    public:
+        friend class Slave;
         /**
          * @brief This module provides a bit-bang implementation for an SPI interface.
          *
@@ -34,22 +57,14 @@ namespace spi
         Module(
             std::unique_ptr<::alfalfa::hal::dio::iInput>&& miso,
             std::unique_ptr<::alfalfa::hal::dio::iOutput>&& mosi,
-            std::unique_ptr<::alfalfa::hal::dio::iOutput>&& clk,
-            uint32_t nop_multiplier = 1);
-        void Transceive(const uint8_t data) override;
-        void Transceive(const uint8_t data, uint8_t& target) override;
-        void Transceive(const std::span<const uint8_t> data) override;
-        void Transceive(const std::span<const uint8_t> data, std::span<uint8_t> target) override;
-        void Flush() override;
+            std::unique_ptr<::alfalfa::hal::dio::iOutput>&& clk);
 
     private:
         std::unique_ptr<::alfalfa::hal::dio::iInput> _miso;
         std::unique_ptr<::alfalfa::hal::dio::iOutput> _mosi;
         std::unique_ptr<::alfalfa::hal::dio::iOutput> _clk;
-        const uint32_t _nop_multiplier;
-
-        uint8_t __WriteByte(uint8_t byte);
     };
+
 }
 }
 }

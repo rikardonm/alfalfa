@@ -12,20 +12,21 @@ namespace hal
 {
 namespace spi
 {
+
     /**
-     * @brief An interface for a simple SPI communication module.
+     * @brief An abstraction for a slave device connected to an SPI bus.
      *
      */
-    class iModule
+    class iSlave
     {
     public:
-        virtual ~iModule() = default;
+        virtual ~iSlave() = default;
         virtual void Transceive(const uint8_t data) = 0;
         virtual void Transceive(const uint8_t data, uint8_t& target) = 0;
         virtual void Transceive(const std::span<const uint8_t> data) = 0;
         virtual void Transceive(const std::span<const uint8_t> data, std::span<uint8_t> target) = 0;
-        virtual void Flush() = 0;
     };
+
 }
 }
 }

@@ -16,10 +16,12 @@ namespace alfalfa
 {
 namespace hal
 {
+namespace impl
+{
 namespace uart
 {
 
-    class Module : public iModule
+    class Module : public alfalfa::hal::uart::iModule
     {
     public:
         Module(
@@ -60,6 +62,7 @@ namespace uart
         const uart_port_t _uart_num;
     };
 
+}
 }
 }
 }
