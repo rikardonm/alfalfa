@@ -150,6 +150,16 @@ namespace time
             _last_ts -= _backoff;
         }
 
+        /**
+         * @brief Delay the next hit by a specified amount of time.
+         *
+         * @param delay_by The amount of time to delay the next hit.
+         */
+        void PostponeHit(const T delay_by)
+        {
+            _last_ts += delay_by;
+        }
+
     protected:
         T _last_ts;
         T _backoff;

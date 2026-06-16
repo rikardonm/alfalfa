@@ -54,6 +54,8 @@ namespace oal
 
         void SetBackoff(const Units::Second value);
 
+        void PostponeHit(const Units::Second delay_by);
+
         static TickType ConvertToTicks(const Units::Second period);
         static TickType ConvertToTicks(const time_t period);
         static time_t ConvertToTimet(const TickType ticks);

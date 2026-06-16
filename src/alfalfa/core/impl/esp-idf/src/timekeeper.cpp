@@ -35,6 +35,11 @@ namespace oal
         basetype::SetBackoff(pdMS_TO_TICKS(value.To_time_t(std::milli())));
     }
 
+    void TickBackoff::PostponeHit(const Units::Second delay_by)
+    {
+        basetype::PostponeHit(pdMS_TO_TICKS(delay_by.To_time_t(std::milli())));
+    }
+
     void Timekeeper::DumbDelay(const Units::Second time)
     {
         vTaskDelay(pdMS_TO_TICKS(time.DecayTo<uint32_t>(1000, 1)));
