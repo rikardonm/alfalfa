@@ -67,6 +67,35 @@ namespace Units
                 (void)ratio;
             }
 
+            static basetype FromString(const std::string& value)
+            {
+                // See: https://www.studyplan.dev/pro-cpp/regex
+                // See: https://www.studyplan.dev/pro-cpp/regex-capture-groups
+                const auto symbol = basetype::Symbol();
+                std::string _units_regex_str(R"(^([-\+]?\d+(?:\.\d+)?)\s?([TGMkmunp]?))");
+                _units_regex_str += symbol;
+                _units_regex_str += "$";
+                const std::regex _units_regex(_units_regex_str);
+
+                std::smatch sm;
+
+                if (not std::regex_match(value, sm, _units_regex))
+                {
+                    throw std::invalid_argument("Wrong number format.");
+                }
+
+                const auto numeric_value = sm.str(1);
+                const auto mult_str = sm.str(2);
+
+                double mult = 1.0;
+                if (not mult_str.empty())
+                {
+                    mult = Units::Multiples::GetMultiplier(mult_str[0]);
+                }
+
+                return basetype(std::stod(numeric_value) * mult);
+            }
+
             /***********************************************************************************************************
              ***************************** Getters
              **********************************************************************************************************/
@@ -317,31 +346,7 @@ inline void ToStream(std::stringstream& stream, const T& unit)
 template<Units::UnitConcept T>
 inline T FromString(const std::string& value)
 {
-    // See: https://www.studyplan.dev/pro-cpp/regex
-    // See: https://www.studyplan.dev/pro-cpp/regex-capture-groups
-    const auto symbol = T::Symbol();
-    std::string _units_regex_str(R"(^([-\+]?\d+(?:\.\d+)?)\s?([TGMkmunp]?))");
-    _units_regex_str += symbol;
-    _units_regex_str += "$";
-    const std::regex _units_regex(_units_regex_str);
-
-    std::smatch sm;
-
-    if (not std::regex_match(value, sm, _units_regex))
-    {
-        throw std::invalid_argument("Wrong number format.");
-    }
-
-    const auto numeric_value = sm.str(1);
-    const auto mult_str = sm.str(2);
-
-    double mult = 1.0;
-    if (not mult_str.empty())
-    {
-        mult = Units::Multiples::GetMultiplier(mult_str[0]);
-    }
-
-    return T(std::stod(numeric_value) * mult);
+    return T::FromString(value);
 }
 
 template<Units::UnitConcept T>
