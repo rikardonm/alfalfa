@@ -56,7 +56,7 @@ namespace ADS1x1x
             FSR_0256 = 0b101,
         };
 
-        enum class DataRate : uint8_t
+        enum class DataRate1015 : uint8_t
         {
             SPS_128 = 0b000,
             SPS_250 = 0b001,
@@ -67,11 +67,23 @@ namespace ADS1x1x
             SPS_3300 = 0b110,
         };
 
+        enum class DataRate1115 : uint8_t
+        {
+            SPS_8 = 0b000,
+            SPS_16 = 0b001,
+            SPS_32 = 0b010,
+            SPS_64 = 0b011,
+            SPS_128 = 0b100,
+            SPS_250 = 0b101,
+            SPS_475 = 0b110,
+            SPS_860 = 0b111,
+        };
+
         ComparatorQueue comp_queue:2;
         bool comparator_latch:1;
         bool comparator_polarity:1;
         bool comparator_mode:1;
-        DataRate data_rate:3;
+        uint8_t data_rate:3;
         bool mode:1;
         GainConfig pga_gain:3;
         InputMuxConfig input_mux:3;
@@ -128,13 +140,40 @@ namespace ADS1x1x
         void ConfigureSingleShot(
             const ConfigRegister::InputMuxConfig input,
             const ConfigRegister::GainConfig gain,
-            const ConfigRegister::DataRate rate,
+            const ConfigRegister::DataRate1015 rate,
             const bool trigger);
 
         void ConfigureContinuosSampling(
             const ConfigRegister::InputMuxConfig input,
             const ConfigRegister::GainConfig gain,
-            const ConfigRegister::DataRate rate);
+            const ConfigRegister::DataRate1015 rate);
+
+        void _SetGain(const ConfigRegister::GainConfig gain);
+
+    private:
+        double _value_per_count;
+    };
+
+    struct ADS1115 : public alfalfa::bal::ADS1x1x::BaseModule
+    {
+        ADS1115(
+            std::shared_ptr<alfalfa::hal::two_wire::iBusMaster> two_wire_module,
+            alfalfa::hal::two_wire::AddressSelector address);
+
+        int16_t GetConversionResult();
+
+        Units::Volt GetVoltage();
+
+        void ConfigureSingleShot(
+            const ConfigRegister::InputMuxConfig input,
+            const ConfigRegister::GainConfig gain,
+            const ConfigRegister::DataRate1115 rate,
+            const bool trigger);
+
+        void ConfigureContinuosSampling(
+            const ConfigRegister::InputMuxConfig input,
+            const ConfigRegister::GainConfig gain,
+            const ConfigRegister::DataRate1115 rate);
 
         void _SetGain(const ConfigRegister::GainConfig gain);
 

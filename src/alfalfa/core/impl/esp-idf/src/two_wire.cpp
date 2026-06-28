@@ -16,6 +16,37 @@ namespace hal
 {
 namespace two_wire
 {
+    void TerminateRead(std::vector<i2c_operation_job_t>& jobs)
+    {
+        if (jobs.size() == 0)
+        {
+            return;
+        }
+        if (jobs.back().command != I2C_MASTER_CMD_READ)
+        {
+            return;
+        }
+        auto& og_read = jobs.back().read;
+        if (og_read.ack_value == I2C_NACK_VAL)
+        {
+            return;
+        }
+        if (og_read.total_bytes == 1)
+        {
+            og_read.ack_value = I2C_NACK_VAL;
+            return;
+        }
+        og_read.total_bytes -= 1;
+        jobs.emplace_back(i2c_operation_job_t{
+            .command = I2C_MASTER_CMD_READ,
+            .read = {
+                .ack_value = I2C_NACK_VAL,
+                .data = og_read.data + og_read.total_bytes,
+                .total_bytes = 1
+            }
+        });
+    }
+
 
     void CheckAndThrow(const esp_err_t err, const char* message)
     {
@@ -75,43 +106,13 @@ namespace two_wire
 
     void BusMaster::Execute(trx::Collection collection)
     {
-        const auto terminate_read = [](std::vector<i2c_operation_job_t>& jobs){
-            if (jobs.size() == 0)
-            {
-                return;
-            }
-            if (jobs.back().command != I2C_MASTER_CMD_READ)
-            {
-                return;
-            }
-            auto& og_read = jobs.back().read;
-            if (og_read.ack_value == I2C_NACK_VAL)
-            {
-                return;
-            }
-            if (og_read.total_bytes == 1)
-            {
-                og_read.ack_value = I2C_NACK_VAL;
-                return;
-            }
-            og_read.total_bytes -= 1;
-            jobs.emplace_back(i2c_operation_job_t{
-                .command = I2C_MASTER_CMD_READ,
-                .read = {
-                    .ack_value = I2C_NACK_VAL,
-                    .data = og_read.data + og_read.total_bytes,
-                    .total_bytes = 1
-                }
-            });
-        };
-
         std::vector<i2c_operation_job_t> jobs;
         jobs.reserve(collection.commands.size());
         for (auto& item : collection.commands)
         {
             if (not std::holds_alternative<trx::_ReadCommand>(item))
             {
-                terminate_read(jobs);
+                TerminateRead(jobs);
             }
 
             if (std::holds_alternative<trx::_WriteCommand>(item))
@@ -146,7 +147,7 @@ namespace two_wire
                 jobs.emplace_back(i2c_operation_job_t{
                     .command = I2C_MASTER_CMD_WRITE,
                     .write = {
-                        .ack_check = false,
+                        .ack_check = start.require_ack,
                         .data = reinterpret_cast<uint8_t*>(const_cast<std::byte*>(&start.address_command)),
                         .total_bytes = 1
                     }
@@ -154,7 +155,7 @@ namespace two_wire
             }
             else if (std::holds_alternative<trx::Stop>(item))
             {
-                jobs.emplace_back(i2c_operation_job_t{.command = I2C_MASTER_CMD_STOP, .write = {}});
+                jobs.emplace_back(i2c_operation_job_t{.command = I2C_MASTER_CMD_STOP, .write = {.ack_check = true}});
             }
             else
             {

@@ -1,10 +1,11 @@
-#include <alfalfa/impl/hal/two_wire.hpp>
+#include <alfalfa/impl/esp-idf/hal/two_wire.hpp>
 #include <alfalfa/boards/esp32_c3_super_mini.hpp>
 
 #include <alfalfa/oal/timekeeper.hpp>
 
 #include <alfalfa/abm/console.hpp>
 #include <alfalfa/lib/log.hpp>
+#include <alfalfa/lib/custom.hpp>
 #include <alfalfa/bal/aht10.hpp>
 #include <alfalfa/bal/bmp280.hpp>
 #include <alfalfa/bal/mcp4725.hpp>
@@ -19,14 +20,6 @@ void app_main()
     auto board = std::make_shared<alfalfa::boards::Esp32C3SuperMini>();
     alfalfa::logging::Init();
     alfalfa::logging::SetLevel(alfalfa::logging::LogLevel::Debug);
-
-    auto i2c = std::make_shared<alfalfa::hal::two_wire::BusMaster>(
-        I2C_NUM_0,
-        alfalfa::hal::Pin(5), // SCL
-        alfalfa::hal::Pin(6),  // SDA
-        100_kHz,
-        10_ms
-    );
 
     auto console = alfalfa::abm::console::Console(board->uart->Rx(), board->uart->Tx());
     alfalfa::logging::SetStdout(std::get<1>(console.GetStdStreams()));
@@ -48,10 +41,35 @@ void app_main()
         board->SoftReset();
     });
 
-    auto trxs = Timekeeper::MonotoneInterval(1_s);
+    auto i2c = std::make_shared<alfalfa::hal::two_wire::BusMaster>(
+        I2C_NUM_0,
+        alfalfa::hal::Pin(5), // SCL
+        alfalfa::hal::Pin(6),  // SDA
+        100_kHz,
+        50_ms
+    );
 
-    namespace bmp = alfalfa::bal::Bmp280;
-    auto sensor = std::make_shared<bmp::Bmp280>(i2c, true);
+    // Scan the I2C address range, and show who's online
+    auto total_alive = 0;
+    for (auto cnt = 1; cnt < 0x7F; cnt += 1)
+    {
+        namespace t = alfalfa::hal::two_wire::trx;
+        try
+        {
+            auto y = t::CollectionBuilder(t::StartNone(cnt, true));
+            i2c->Execute(y);
+            Logln(std::format("Address {:x} is alive", cnt));
+            total_alive += 1;
+        }
+            catch(const std::exception& e)
+        {
+            // Logln(std::format("Address {:x} is not responding: {}", cnt, e.what()));
+            // do nothing
+        }
+    }
+    Logln(std::format("Total alive: {}", total_alive));
+
+    auto sensor = std::make_shared<alfalfa::bal::Bmp280::Bmp280>(i2c, true);
     auto chip_id = sensor->ReadChipId();
     Logln("BMP280 initialized. Chip ID: ", std::format("{:#04x}", chip_id));
     if (chip_id != 0x58)
@@ -59,20 +77,30 @@ void app_main()
         throw std::runtime_error("BMP280: Invalid chip ID");
     }
     sensor->SetControlMeas(
-        bmp::PowerMode::Normal,
-        bmp::TemperatureSampling::x16_20bit,
-        bmp::PressureSampling::x16_UltraHighResolution);
+        alfalfa::bal::Bmp280::PowerMode::Normal,
+        alfalfa::bal::Bmp280::TemperatureSampling::x16_20bit,
+        alfalfa::bal::Bmp280::PressureSampling::x16_UltraHighResolution);
 
+    Logln("Reading MCP4725 DAC");
+    auto mcp_dac = std::make_shared<alfalfa::bal::MCP4725>(i2c, true);
+
+    Logln("Reading AHT10");
     auto aht10 = std::make_shared<alfalfa::bal::Aht10>(i2c, false);
-    auto mcp_dac = std::make_shared<alfalfa::bal::MCP4725>(i2c, false);
-    auto ads_adc = std::make_shared<alfalfa::bal::ADS1x1x::ADS1015>(i2c, alfalfa::hal::two_wire::AddressSelector::GND);
-    ads_adc->ConfigureContinuosSampling(
+
+    auto ads1015 = std::make_shared<alfalfa::bal::ADS1x1x::ADS1015>(i2c, alfalfa::hal::two_wire::AddressSelector::GND);
+    ads1015->ConfigureContinuosSampling(
         alfalfa::bal::ADS1x1x::ConfigRegister::InputMuxConfig::An0,
         alfalfa::bal::ADS1x1x::ConfigRegister::GainConfig::FSR_6144,
-        alfalfa::bal::ADS1x1x::ConfigRegister::DataRate::SPS_920);
+        alfalfa::bal::ADS1x1x::ConfigRegister::DataRate1015::SPS_920);
+    auto ads1115 = std::make_shared<alfalfa::bal::ADS1x1x::ADS1115>(i2c, alfalfa::hal::two_wire::AddressSelector::GND);
+    ads1115->ConfigureContinuosSampling(
+        alfalfa::bal::ADS1x1x::ConfigRegister::InputMuxConfig::An0,
+        alfalfa::bal::ADS1x1x::ConfigRegister::GainConfig::FSR_6144,
+        alfalfa::bal::ADS1x1x::ConfigRegister::DataRate1115::SPS_860);
     auto an_value = Units::percent_0;
     uint16_t cnt = 0;
 
+    auto trxs = Timekeeper::MonotoneInterval(1_s);
     while(true)
     {
         loop.DelayUntilMark();
@@ -91,7 +119,7 @@ void app_main()
                 {
                     cnt = 0;
                 }
-                // mcp_dac->WriteOutput(cnt);
+                mcp_dac->WriteOutput(cnt);
                 Logln(std::format("Setting DAC to {:.2f}, count: {}", an_value, cnt));
             }
         }
@@ -102,19 +130,18 @@ void app_main()
             try
             {
                 const auto [temp, pres] = sensor->ReadCombo();
-                Logln(std::format("We've got: {:.2f} {:.0f|h}", temp, pres));
+                Logln(std::format("BMP280: {:.2f} {:.0f|h}", temp, pres));
                 const auto [humidity, temperature] = aht10->ReadHumidityAndTemperature();
-                Logln(std::format("AHT result: {:.2f} {:.2f}", humidity, temperature));
-                const auto an_value_read = ads_adc->GetVoltage();
-                Logln(std::format("ADS1015 voltage: {:.3f}", an_value_read));
+                Logln(std::format("AHT10:  {:.2f} {:.2f}", humidity, temperature));
+                const auto an_value_read_10 = ads1015->GetVoltage();
+                Logln(std::format("ADS1015 voltage: {:.3f}", an_value_read_10));
+                const auto an_value_read_11 = ads1115->GetVoltage();
+                Logln(std::format("ADS1115 voltage: {:.3f}", an_value_read_11));
             }
             catch (const std::exception& e)
             {
                 Logln("Error initializing AHT10: ", e.what());
             }
-
-
         }
-
     }
 }

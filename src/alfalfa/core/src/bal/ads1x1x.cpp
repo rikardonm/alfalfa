@@ -100,7 +100,7 @@ namespace ADS1x1x
     void ADS1015::ConfigureSingleShot(
         const ConfigRegister::InputMuxConfig input,
         const ConfigRegister::GainConfig gain,
-        const ConfigRegister::DataRate rate,
+        const ConfigRegister::DataRate1015 rate,
         const bool trigger)
     {
         auto reg = ConfigRegister{};
@@ -108,7 +108,7 @@ namespace ADS1x1x
         reg.comparator_latch = false;
         reg.comparator_polarity = false;
         reg.comparator_mode = false;
-        reg.data_rate = rate;
+        reg.data_rate = static_cast<uint8_t>(rate);
         reg.mode = true; // Single-shot
         reg.pga_gain = gain;
         reg.input_mux = input;
@@ -120,14 +120,14 @@ namespace ADS1x1x
     void ADS1015::ConfigureContinuosSampling(
         const ConfigRegister::InputMuxConfig input,
         const ConfigRegister::GainConfig gain,
-        const ConfigRegister::DataRate rate)
+        const ConfigRegister::DataRate1015 rate)
     {
         auto reg = ConfigRegister{};
         reg.comp_queue = ConfigRegister::ComparatorQueue::DISABLE_COMPARATOR;
         reg.comparator_latch = false;
         reg.comparator_polarity = false;
         reg.comparator_mode = false;
-        reg.data_rate = rate;
+        reg.data_rate = static_cast<uint8_t>(rate);
         reg.mode = false; // Continuous
         reg.pga_gain = gain;
         reg.input_mux = input;
@@ -165,6 +165,96 @@ namespace ADS1x1x
         // The ADS1015 has a 12-bit converter
         // in the datasheet fsr is defined as +/- full scale
         _value_per_count = fsr / ((1 << 11) - 1);
+    }
+
+    ADS1115::ADS1115(
+        std::shared_ptr<alfalfa::hal::two_wire::iBusMaster> two_wire_module,
+        alfalfa::hal::two_wire::AddressSelector address)
+        : ADS1x1x::BaseModule(two_wire_module, address)
+        , _value_per_count(0.0)
+    {
+    }
+
+    int16_t ADS1115::GetConversionResult()
+    {
+        // The ADS1115 left-justifies the 16-bit result in the 16-bit register.
+        const auto result = ReadRegister(ADS1x1x::Register::Conversion);
+        return std::bit_cast<int16_t>(result);
+    }
+
+    Units::Volt ADS1115::GetVoltage()
+    {
+        return Units::Volt(_value_per_count * GetConversionResult());
+    }
+
+    void ADS1115::ConfigureSingleShot(
+        const ConfigRegister::InputMuxConfig input,
+        const ConfigRegister::GainConfig gain,
+        const ConfigRegister::DataRate1115 rate,
+        const bool trigger)
+    {
+        auto reg = ConfigRegister{};
+        reg.comp_queue = ConfigRegister::ComparatorQueue::DISABLE_COMPARATOR;
+        reg.comparator_latch = false;
+        reg.comparator_polarity = false;
+        reg.comparator_mode = false;
+        reg.data_rate = static_cast<uint8_t>(rate);
+        reg.mode = true; // Single-shot
+        reg.pga_gain = gain;
+        reg.input_mux = input;
+        reg.os_single_shot = trigger;
+        WriteRegister(ADS1x1x::Register::Config, std::bit_cast<uint16_t>(reg));
+        _SetGain(gain);
+    }
+
+    void ADS1115::ConfigureContinuosSampling(
+        const ConfigRegister::InputMuxConfig input,
+        const ConfigRegister::GainConfig gain,
+        const ConfigRegister::DataRate1115 rate)
+    {
+        auto reg = ConfigRegister{};
+        reg.comp_queue = ConfigRegister::ComparatorQueue::DISABLE_COMPARATOR;
+        reg.comparator_latch = false;
+        reg.comparator_polarity = false;
+        reg.comparator_mode = false;
+        reg.data_rate = static_cast<uint8_t>(rate);
+        reg.mode = false; // Continuous
+        reg.pga_gain = gain;
+        reg.input_mux = input;
+        reg.os_single_shot = false;
+        WriteRegister(ADS1x1x::Register::Config, std::bit_cast<uint16_t>(reg));
+        _SetGain(gain);
+    }
+
+    void ADS1115::_SetGain(const ConfigRegister::GainConfig gain)
+    {
+        double fsr = 0;
+        switch (gain)
+        {
+        case ConfigRegister::GainConfig::FSR_0256:
+            fsr = 0.0256;
+            break;
+        case ConfigRegister::GainConfig::FSR_0512:
+            fsr = 0.512;
+            break;
+        case ConfigRegister::GainConfig::FSR_1024:
+            fsr = 1.024;
+            break;
+        case ConfigRegister::GainConfig::FSR_2048:
+            fsr = 2.048;
+            break;
+        case ConfigRegister::GainConfig::FSR_4096:
+            fsr = 4.096;
+            break;
+        case ConfigRegister::GainConfig::FSR_6144:
+            fsr = 6.144;
+            break;
+        default:
+            throw std::invalid_argument("Invalid GainConfig value");
+        }
+        // The ADS1115 has a 16-bit converter
+        // in the datasheet fsr is defined as +/- full scale
+        _value_per_count = fsr / ((1 << 15) - 1);
     }
 
 }

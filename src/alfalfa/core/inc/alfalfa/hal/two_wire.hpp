@@ -47,7 +47,19 @@ namespace two_wire
         {
             // This is the address value already shifted
             std::byte address_command;
+            // Whether or not to require an ACK from the slave device after sending the address
+            bool require_ack = false;
         };
+
+        inline Start StartNone(std::byte address, bool require_ack = false)
+        {
+            return {address << 1, require_ack};
+        }
+
+        inline Start StartNone(uint8_t address, bool require_ack = false)
+        {
+            return StartNone(std::byte{address}, require_ack);
+        }
 
         inline Start StartWrite(std::byte address)
         {
@@ -56,7 +68,7 @@ namespace two_wire
 
         inline Start StartWrite(uint8_t address)
         {
-            return {std::byte{address} << 1};
+            return StartWrite(std::byte{address});
         }
 
         inline Start StartRead(std::byte address)
@@ -66,7 +78,7 @@ namespace two_wire
 
         inline Start StartRead(uint8_t address)
         {
-            return {(std::byte{address} << 1) | std::byte{0x01}};
+            return StartRead(std::byte{address});
         }
 
         template<std::size_t LEN>
