@@ -10,21 +10,34 @@ namespace bal
 namespace ADS1x1x
 {
 
-    std::byte GetAddress(alfalfa::hal::two_wire::AddressSelector addr)
+    std::byte GetAddress(alfalfa::hal::two_wire::AddressVariant address)
     {
-        switch (addr)
+        if (auto p = std::get_if<alfalfa::hal::two_wire::AddressSelector>(&address))
         {
-            case alfalfa::hal::two_wire::AddressSelector::GND:  return std::byte{0x48};
-            case alfalfa::hal::two_wire::AddressSelector::VCC:  return std::byte{0x49};
-            case alfalfa::hal::two_wire::AddressSelector::SDA:  return std::byte{0x4A};
-            case alfalfa::hal::two_wire::AddressSelector::SCL:  return std::byte{0x4B};
-            default: throw std::invalid_argument("Invalid TwoWire::AddressSelector value");
+            switch (*p)
+            {
+                case alfalfa::hal::two_wire::AddressSelector::GND:  return std::byte{0x48};
+                case alfalfa::hal::two_wire::AddressSelector::VCC:  return std::byte{0x49};
+                default: throw std::invalid_argument("Invalid TwoWire::AddressSelectorExtended value");
+            }
         }
+        else if (auto p = std::get_if<alfalfa::hal::two_wire::AddressSelectorExtended>(&address))
+        {
+            switch (*p)
+            {
+                case alfalfa::hal::two_wire::AddressSelectorExtended::GND:  return std::byte{0x48};
+                case alfalfa::hal::two_wire::AddressSelectorExtended::VCC:  return std::byte{0x49};
+                case alfalfa::hal::two_wire::AddressSelectorExtended::SDA:  return std::byte{0x4A};
+                case alfalfa::hal::two_wire::AddressSelectorExtended::SCL:  return std::byte{0x4B};
+                default: throw std::invalid_argument("Invalid TwoWire::AddressSelectorExtended value");
+            }
+        }
+        throw std::invalid_argument("Invalid TwoWire address variant");
     }
 
     BaseModule::BaseModule(
         std::shared_ptr<alfalfa::hal::two_wire::iBusMaster> two_wire_module,
-        alfalfa::hal::two_wire::AddressSelector address)
+        alfalfa::hal::two_wire::AddressVariant address)
         : _address(GetAddress(address))
         , _tw(two_wire_module)
     {
@@ -79,7 +92,7 @@ namespace ADS1x1x
 
     ADS1015::ADS1015(
         std::shared_ptr<alfalfa::hal::two_wire::iBusMaster> two_wire_module,
-        alfalfa::hal::two_wire::AddressSelector address)
+        alfalfa::hal::two_wire::AddressVariant address)
         : ADS1x1x::BaseModule(two_wire_module, address)
         , _value_per_count(0.0)
     {
@@ -169,7 +182,7 @@ namespace ADS1x1x
 
     ADS1115::ADS1115(
         std::shared_ptr<alfalfa::hal::two_wire::iBusMaster> two_wire_module,
-        alfalfa::hal::two_wire::AddressSelector address)
+        std::variant<alfalfa::hal::two_wire::AddressSelector, alfalfa::hal::two_wire::AddressSelectorExtended> address)
         : ADS1x1x::BaseModule(two_wire_module, address)
         , _value_per_count(0.0)
     {

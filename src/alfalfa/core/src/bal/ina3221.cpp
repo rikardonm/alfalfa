@@ -17,7 +17,7 @@ namespace Ina3221
 
     Module::Module(
         std::shared_ptr<alfalfa::hal::two_wire::iBusMaster> module,
-        const alfalfa::hal::two_wire::AddressSelector address_selector)
+        const alfalfa::hal::two_wire::AddressSelectorExtended address_selector)
         : _module(std::move(module))
         , _address(GetAddressForA0(address_selector))
     {
@@ -124,21 +124,21 @@ namespace Ina3221
         return Units::Ampere(current_value);
     }
 
-    std::byte Module::GetAddressForA0(const ::alfalfa::hal::two_wire::AddressSelector selector)
+    std::byte Module::GetAddressForA0(const ::alfalfa::hal::two_wire::AddressSelectorExtended selector)
     {
         const std::byte value{0x40};
         switch (selector)
         {
-            case ::alfalfa::hal::two_wire::AddressSelector::GND:
+            case ::alfalfa::hal::two_wire::AddressSelectorExtended::GND:
                 return value | std::byte{0b00};
-            case ::alfalfa::hal::two_wire::AddressSelector::VCC:
+            case ::alfalfa::hal::two_wire::AddressSelectorExtended::VCC:
                 return value | std::byte{0b01};
-            case ::alfalfa::hal::two_wire::AddressSelector::SDA:
+            case ::alfalfa::hal::two_wire::AddressSelectorExtended::SDA:
                 return value | std::byte{0b10};
-            case ::alfalfa::hal::two_wire::AddressSelector::SCL:
+            case ::alfalfa::hal::two_wire::AddressSelectorExtended::SCL:
                 return value | std::byte{0b11};
             default:
-                throw std::invalid_argument("Invalid TwoWire::AddressSelector value");
+                throw std::invalid_argument("Invalid TwoWire::AddressSelectorExtended value");
         }
     }
 

@@ -27,7 +27,7 @@ namespace Ina3221
     public:
         Module(
             std::shared_ptr<alfalfa::hal::two_wire::iBusMaster> module,
-            const alfalfa::hal::two_wire::AddressSelector address_selector);
+            const alfalfa::hal::two_wire::AddressSelectorExtended address_selector);
 
         uint16_t ReadRegister(const std::optional<uint8_t> addr) const;
         void WriteRegister(const uint8_t addr, const uint16_t value) const;
@@ -36,7 +36,7 @@ namespace Ina3221
         Units::Volt ReadBusVoltage(const Channel channel) const;
         Units::Volt ReadShuntVoltage(const Channel channel) const;
         Units::Ampere ReadShuntCurrent(const Channel channel, const Units::Ohm shunt_resistance) const;
-        static std::byte GetAddressForA0(const ::alfalfa::hal::two_wire::AddressSelector selector);
+        static std::byte GetAddressForA0(const ::alfalfa::hal::two_wire::AddressSelectorExtended selector);
 
     private:
         std::shared_ptr<alfalfa::hal::two_wire::iBusMaster> _module;

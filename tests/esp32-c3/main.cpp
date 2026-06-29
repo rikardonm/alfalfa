@@ -10,6 +10,7 @@
 #include <alfalfa/bal/bmp280.hpp>
 #include <alfalfa/bal/mcp4725.hpp>
 #include <alfalfa/bal/ads1x1x.hpp>
+#include <alfalfa/bal/two_wire_registry.hpp>
 
 
 extern "C" void app_main();
@@ -50,24 +51,17 @@ void app_main()
     );
 
     // Scan the I2C address range, and show who's online
-    auto total_alive = 0;
-    for (auto cnt = 1; cnt < 0x7F; cnt += 1)
+    auto alive_addresses = alfalfa::hal::two_wire::ScanBus(*i2c, 50_ms, 0x01, 0x7F);
+    for (auto address : alive_addresses)
     {
-        namespace t = alfalfa::hal::two_wire::trx;
-        try
+        auto matches = alfalfa::bal::MatchDeviceAddress(address);
+        Logln(std::format("Address {:x} is alive", address));
+        for (const auto& match : matches)
         {
-            auto y = t::CollectionBuilder(t::StartNone(cnt, true));
-            i2c->Execute(y);
-            Logln(std::format("Address {:x} is alive", cnt));
-            total_alive += 1;
-        }
-            catch(const std::exception& e)
-        {
-            // Logln(std::format("Address {:x} is not responding: {}", cnt, e.what()));
-            // do nothing
+            Logln(std::format("  - {}", match));
         }
     }
-    Logln(std::format("Total alive: {}", total_alive));
+    Logln(std::format("Total alive: {}", alive_addresses.size()));
 
     auto sensor = std::make_shared<alfalfa::bal::Bmp280::Bmp280>(i2c, true);
     auto chip_id = sensor->ReadChipId();
@@ -87,12 +81,12 @@ void app_main()
     Logln("Reading AHT10");
     auto aht10 = std::make_shared<alfalfa::bal::Aht10>(i2c, false);
 
-    auto ads1015 = std::make_shared<alfalfa::bal::ADS1x1x::ADS1015>(i2c, alfalfa::hal::two_wire::AddressSelector::GND);
+    auto ads1015 = std::make_shared<alfalfa::bal::ADS1x1x::ADS1015>(i2c, alfalfa::hal::two_wire::AddressSelectorExtended::GND);
     ads1015->ConfigureContinuosSampling(
         alfalfa::bal::ADS1x1x::ConfigRegister::InputMuxConfig::An0,
         alfalfa::bal::ADS1x1x::ConfigRegister::GainConfig::FSR_6144,
         alfalfa::bal::ADS1x1x::ConfigRegister::DataRate1015::SPS_920);
-    auto ads1115 = std::make_shared<alfalfa::bal::ADS1x1x::ADS1115>(i2c, alfalfa::hal::two_wire::AddressSelector::GND);
+    auto ads1115 = std::make_shared<alfalfa::bal::ADS1x1x::ADS1115>(i2c, alfalfa::hal::two_wire::AddressSelectorExtended::GND);
     ads1115->ConfigureContinuosSampling(
         alfalfa::bal::ADS1x1x::ConfigRegister::InputMuxConfig::An0,
         alfalfa::bal::ADS1x1x::ConfigRegister::GainConfig::FSR_6144,

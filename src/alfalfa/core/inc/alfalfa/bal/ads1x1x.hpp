@@ -97,7 +97,7 @@ namespace ADS1x1x
     {
         BaseModule(
             std::shared_ptr<alfalfa::hal::two_wire::iBusMaster> two_wire_module,
-            alfalfa::hal::two_wire::AddressSelector address);
+            alfalfa::hal::two_wire::AddressVariant address);
 
         /**
          * @brief Read a single 16-bit register from the device.
@@ -131,7 +131,7 @@ namespace ADS1x1x
     {
         ADS1015(
             std::shared_ptr<alfalfa::hal::two_wire::iBusMaster> two_wire_module,
-            alfalfa::hal::two_wire::AddressSelector address);
+            alfalfa::hal::two_wire::AddressVariant address);
 
         int16_t GetConversionResult();
 
@@ -158,7 +158,7 @@ namespace ADS1x1x
     {
         ADS1115(
             std::shared_ptr<alfalfa::hal::two_wire::iBusMaster> two_wire_module,
-            alfalfa::hal::two_wire::AddressSelector address);
+            alfalfa::hal::two_wire::AddressVariant address);
 
         int16_t GetConversionResult();
 
