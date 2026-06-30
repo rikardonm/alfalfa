@@ -5,7 +5,7 @@
 
 
 auto known_devices = std::map<std::string, std::set<uint8_t>>{
-    {"ADS105", {0x48, 0x49, 0x4A, 0x4B}},               // 12-bit ADC with PGA and comparator
+    {"ADS1015", {0x48, 0x49, 0x4A, 0x4B}},              // 12-bit ADC with PGA and comparator
     {"ADS1115", {0x48, 0x49, 0x4A, 0x4B}},              // 16-bit ADC with PGA and comparator
     {"AHT10", {0x38, 0x39}},                            // Temperature and Humidity Sensor
     {"BMP280", {0x76, 0x77}},                           // Temperature and Pressure Sensor
