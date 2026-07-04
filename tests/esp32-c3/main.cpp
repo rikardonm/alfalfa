@@ -1,15 +1,18 @@
 #include <alfalfa/impl/esp-idf/hal/two_wire.hpp>
+#include <alfalfa/impl/esp-idf/hal/spi.hpp>
 #include <alfalfa/boards/esp32_c3_super_mini.hpp>
 
 #include <alfalfa/oal/timekeeper.hpp>
 
 #include <alfalfa/abm/console.hpp>
+#include <alfalfa/lib/types/color.hpp>
 #include <alfalfa/lib/log.hpp>
 #include <alfalfa/lib/custom.hpp>
 #include <alfalfa/bal/aht10.hpp>
 #include <alfalfa/bal/bmp280.hpp>
 #include <alfalfa/bal/mcp4725.hpp>
 #include <alfalfa/bal/ads1x1x.hpp>
+#include <alfalfa/bal/ws2812b.hpp>
 #include <alfalfa/bal/two_wire_registry.hpp>
 
 
@@ -24,7 +27,7 @@ void app_main()
 
     auto console = alfalfa::abm::console::Console(board->uart->Rx(), board->uart->Tx());
     alfalfa::logging::SetStdout(std::get<1>(console.GetStdStreams()));
-    auto loop = Timekeeper::MonotoneInterval(50_ms);
+    auto loop = Timekeeper::MonotoneInterval(10_ms);
     auto blinky = Timekeeper::MonotoneInterval(175_ms);
 
     console.AddFunction("blinky", [&blinky](auto& in, auto& out, auto& args){
@@ -46,9 +49,25 @@ void app_main()
         I2C_NUM_0,
         alfalfa::hal::Pin(5), // SCL
         alfalfa::hal::Pin(6),  // SDA
-        100_kHz,
-        50_ms
+        200_kHz,
+        5_ms
     );
+
+    auto spi = std::make_shared<alfalfa::hal::impl::spi::Module>(
+        SPI2_HOST,
+        alfalfa::hal::Pin(10), // MOSI
+        alfalfa::hal::Pin(20), // MISO
+        alfalfa::hal::Pin(21), // SCK
+        512
+    );
+
+    // WS2812B chip select on IO7
+    auto ws2812b = alfalfa::bal::WS2812B::StaticSpiDriver<8>(
+        std::make_unique<alfalfa::hal::impl::spi::Slave>(
+            spi,
+            alfalfa::hal::Pin(7),
+            4_MHz
+        ));
 
     // Scan the I2C address range, and show who's online
     auto alive_addresses = alfalfa::hal::two_wire::ScanBus(*i2c, 50_ms, 0x01, 0x7F);
@@ -93,8 +112,12 @@ void app_main()
         alfalfa::bal::ADS1x1x::ConfigRegister::DataRate1115::SPS_860);
     auto an_value = Units::percent_0;
     uint16_t cnt = 0;
+    uint8_t led_cnt = 0;
+    uint8_t led_sel = 0;
 
     auto trxs = Timekeeper::MonotoneInterval(1_s);
+    auto ws_led = Timekeeper::MonotoneInterval(5_ms);
+    bool led_up = true;
     while(true)
     {
         loop.DelayUntilMark();
@@ -118,6 +141,54 @@ void app_main()
             }
         }
         console.ConsoleTask();
+
+        if (ws_led.Mark())
+        {
+            alfalfa::lib::Color color;
+            switch (led_sel)
+            {
+                case 0:
+                    color.red = led_cnt;
+                    color.green = 0;
+                    color.blue = 0;
+                break;
+                case 1:
+                    color.red = 0;
+                    color.green = led_cnt;
+                    color.blue = 0;
+                break;
+                case 2:
+                    color.red = 0;
+                    color.green = 0;
+                    color.blue = led_cnt;
+                break;
+                case 3:
+                    color.red = led_cnt;
+                    color.green = led_cnt;
+                    color.blue = led_cnt;
+                break;
+                default:
+                    led_sel = 0;
+                break;
+            }
+            std::array<alfalfa::lib::Color, 8> colors;
+            colors.fill(color);
+            ws2812b.SetColor(colors);
+            led_cnt += led_up ? +1 : -1;
+            switch (led_cnt)
+            {
+                case 0x00:
+                    led_up = true;
+                    led_sel += 1;
+                    led_sel %= 4;
+                break;
+                case 0xFF:
+                    led_up = false;
+                break;
+                default:
+                break;
+            }
+        }
 
         if (trxs.Mark())
         {
