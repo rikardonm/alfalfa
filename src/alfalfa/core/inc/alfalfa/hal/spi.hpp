@@ -21,10 +21,12 @@ namespace spi
     {
     public:
         virtual ~iSlave() = default;
-        virtual void Transceive(const uint8_t data) = 0;
-        virtual void Transceive(const uint8_t data, uint8_t& target) = 0;
-        virtual void Transceive(const std::span<const uint8_t> data) = 0;
-        virtual void Transceive(const std::span<const uint8_t> data, std::span<uint8_t> target) = 0;
+        virtual void Transmit(const std::byte data) = 0;
+        virtual void Transceive(const std::byte data, std::byte& target) = 0;
+        virtual void Receive(std::byte& target) = 0;
+        virtual void Transmit(const std::span<const std::byte> data) = 0;
+        virtual void Transceive(const std::span<const std::byte> data, std::span<std::byte> target) = 0;
+        virtual void Receive(std::span<std::byte> target) = 0;
     };
 
 }

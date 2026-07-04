@@ -30,12 +30,21 @@ namespace spi
         }
     }
 
-    void Slave::Transceive(const uint8_t data)
+    Slave::Slave(
+        std::shared_ptr<Module> module,
+        std::optional<alfalfa::hal::Pin>&& chip_select,
+        Units::Hertz clock_speed_hz)
+        : Slave(module, std::move(chip_select), clock_speed_hz.DecayTo<int>(1, 1))
+    {
+    }
+
+    void Slave::Transmit(const std::byte data)
     {
         spi_device_acquire_bus(_dev_handle, portMAX_DELAY);
         spi_transaction_t t = {};
         t.length = 8;
         t.tx_buffer = &data;
+        t.rx_buffer = nullptr;
         auto err = spi_device_transmit(_dev_handle, &t);
         spi_device_release_bus(_dev_handle);
         if (err != ESP_OK)
@@ -46,7 +55,7 @@ namespace spi
         }
     }
 
-    void Slave::Transceive(const uint8_t data, uint8_t& target)
+    void Slave::Transceive(const std::byte data, std::byte& target)
     {
         spi_device_acquire_bus(_dev_handle, portMAX_DELAY);
         spi_transaction_t t = {};
@@ -63,12 +72,13 @@ namespace spi
         }
     }
 
-    void Slave::Transceive(const std::span<const uint8_t> data)
+    void Slave::Receive(std::byte& target)
     {
         spi_device_acquire_bus(_dev_handle, portMAX_DELAY);
         spi_transaction_t t = {};
-        t.length = data.size() * 8;
-        t.tx_buffer = data.data();
+        t.length = 8;
+        t.tx_buffer = nullptr;
+        t.rx_buffer = &target;
         auto err = spi_device_transmit(_dev_handle, &t);
         spi_device_release_bus(_dev_handle);
         if (err != ESP_OK)
@@ -79,7 +89,24 @@ namespace spi
         }
     }
 
-    void Slave::Transceive(const std::span<const uint8_t> data, std::span<uint8_t> target)
+    void Slave::Transmit(const std::span<const std::byte> data)
+    {
+        spi_device_acquire_bus(_dev_handle, portMAX_DELAY);
+        spi_transaction_t t = {};
+        t.length = data.size() * 8;
+        t.tx_buffer = data.data();
+        t.rx_buffer = nullptr;
+        auto err = spi_device_transmit(_dev_handle, &t);
+        spi_device_release_bus(_dev_handle);
+        if (err != ESP_OK)
+        {
+            std::string detail("Failed to transmit SPI data: ");
+            detail += esp_err_to_name(err);
+            throw std::runtime_error(detail);
+        }
+    }
+
+    void Slave::Transceive(const std::span<const std::byte> data, std::span<std::byte> target)
     {
         if (data.size() != target.size())
         {
@@ -89,6 +116,23 @@ namespace spi
         spi_transaction_t t = {};
         t.length = data.size() * 8;
         t.tx_buffer = data.data();
+        t.rx_buffer = target.data();
+        auto err = spi_device_transmit(_dev_handle, &t);
+        spi_device_release_bus(_dev_handle);
+        if (err != ESP_OK)
+        {
+            std::string detail("Failed to transmit SPI data: ");
+            detail += esp_err_to_name(err);
+            throw std::runtime_error(detail);
+        }
+    }
+
+    void Slave::Receive(std::span<std::byte> target)
+    {
+        spi_device_acquire_bus(_dev_handle, portMAX_DELAY);
+        spi_transaction_t t = {};
+        t.length = target.size() * 8;
+        t.tx_buffer = nullptr;
         t.rx_buffer = target.data();
         auto err = spi_device_transmit(_dev_handle, &t);
         spi_device_release_bus(_dev_handle);
