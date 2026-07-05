@@ -46,11 +46,13 @@ namespace Bmp280
     class Bmp280
     {
     public:
+        static const uint8_t expected_chip_id = 0x58;
+
         Bmp280(
             std::shared_ptr<alfalfa::hal::two_wire::iBusMaster> module,
             bool address_selector = false);
         void Initialize();
-        uint8_t ReadChipId() const;
+        uint8_t ReadChipId(bool check = false) const;
         // Units::Celsius ReadTemperature() const;
         Units::Pascal ReadPressure() const;
         std::tuple<Units::Celsius, Units::Pascal> ReadCombo() const;

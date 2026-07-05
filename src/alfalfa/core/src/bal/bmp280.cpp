@@ -87,11 +87,16 @@ namespace Bmp280
         _pressure_trim[8] = calib.p_9;
     }
 
-    uint8_t Bmp280::ReadChipId() const
+    uint8_t Bmp280::ReadChipId(bool check) const
     {
         std::array<std::byte, 1> buff;
         ReadRegister(std::byte{0xD0}, buff);
-        return std::to_integer<uint8_t>(buff[0]);
+        const auto value = std::to_integer<uint8_t>(buff[0]);
+        if (check and value != expected_chip_id)
+        {
+            throw std::runtime_error("BMP280: Invalid chip ID");
+        }
+        return value;
     }
 
     Units::Pascal Bmp280::ReadPressure() const

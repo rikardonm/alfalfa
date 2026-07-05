@@ -13,10 +13,73 @@
 #include <alfalfa/bal/mcp4725.hpp>
 #include <alfalfa/bal/ads1x1x.hpp>
 #include <alfalfa/bal/ws2812b.hpp>
+#include <alfalfa/bal/veml7700.hpp>
 #include <alfalfa/bal/two_wire_registry.hpp>
 
 
 extern "C" void app_main();
+
+
+/**
+ * @brief Iteratively generates a new fade-in-out color, rotating through red, green, blue, white.
+ */
+class LedSwatchPulser
+{
+public:
+
+    alfalfa::lib::Color TickStep()
+    {
+        alfalfa::lib::Color color;
+        switch (_led_sel)
+        {
+            case 0:
+                color.red = _led_cnt;
+                color.green = 0;
+                color.blue = 0;
+            break;
+            case 1:
+                color.red = 0;
+                color.green = _led_cnt;
+                color.blue = 0;
+            break;
+            case 2:
+                color.red = 0;
+                color.green = 0;
+                color.blue = _led_cnt;
+            break;
+            case 3:
+                color.red = _led_cnt;
+                color.green = _led_cnt;
+                color.blue = _led_cnt;
+            break;
+            default:
+                _led_sel = 0;
+            break;
+        }
+
+        _led_cnt += _led_up ? +1 : -1;
+        switch (_led_cnt)
+        {
+            case 0x00:
+                _led_up = true;
+                _led_sel += 1;
+                _led_sel %= 4;
+            break;
+            case 0xFF:
+                _led_up = false;
+            break;
+            default:
+            break;
+        }
+
+        return color;
+    }
+
+private:
+    bool _led_up = true;
+    uint8_t _led_cnt = 0;
+    uint8_t _led_sel = 0;
+};
 
 
 void app_main()
@@ -82,14 +145,10 @@ void app_main()
     }
     Logln(std::format("Total alive: {}", alive_addresses.size()));
 
-    auto sensor = std::make_shared<alfalfa::bal::Bmp280::Bmp280>(i2c, true);
-    auto chip_id = sensor->ReadChipId();
+    auto bmp280 = std::make_shared<alfalfa::bal::Bmp280::Bmp280>(i2c, true);
+    auto chip_id = bmp280->ReadChipId(true);
     Logln("BMP280 initialized. Chip ID: ", std::format("{:#04x}", chip_id));
-    if (chip_id != 0x58)
-    {
-        throw std::runtime_error("BMP280: Invalid chip ID");
-    }
-    sensor->SetControlMeas(
+    bmp280->SetControlMeas(
         alfalfa::bal::Bmp280::PowerMode::Normal,
         alfalfa::bal::Bmp280::TemperatureSampling::x16_20bit,
         alfalfa::bal::Bmp280::PressureSampling::x16_UltraHighResolution);
@@ -99,6 +158,15 @@ void app_main()
 
     Logln("Reading AHT10");
     auto aht10 = std::make_shared<alfalfa::bal::Aht10>(i2c, false);
+
+    auto veml7700 = std::make_unique<alfalfa::bal::Veml7700::Veml7700>(i2c);
+    veml7700->SetPowerSavingMode(false);
+    Logln(std::format("VEML7000 Chip ID: {:#04x}", veml7700->ReadChipId(true)));
+    veml7700->SetConfiguration(
+        alfalfa::bal::Veml7700::AlsGain::x1,
+        std::nullopt,
+        alfalfa::bal::Veml7700::AlsPersistenceProtect::p1,
+        false);
 
     auto ads1015 = std::make_shared<alfalfa::bal::ADS1x1x::ADS1015>(i2c, alfalfa::hal::two_wire::AddressSelectorExtended::GND);
     ads1015->ConfigureContinuosSampling(
@@ -112,12 +180,11 @@ void app_main()
         alfalfa::bal::ADS1x1x::ConfigRegister::DataRate1115::SPS_860);
     auto an_value = Units::percent_0;
     uint16_t cnt = 0;
-    uint8_t led_cnt = 0;
-    uint8_t led_sel = 0;
 
     auto trxs = Timekeeper::MonotoneInterval(1_s);
     auto ws_led = Timekeeper::MonotoneInterval(5_ms);
-    bool led_up = true;
+    auto swatch_pulser = LedSwatchPulser();
+
     while(true)
     {
         loop.DelayUntilMark();
@@ -144,57 +211,17 @@ void app_main()
 
         if (ws_led.Mark())
         {
-            alfalfa::lib::Color color;
-            switch (led_sel)
-            {
-                case 0:
-                    color.red = led_cnt;
-                    color.green = 0;
-                    color.blue = 0;
-                break;
-                case 1:
-                    color.red = 0;
-                    color.green = led_cnt;
-                    color.blue = 0;
-                break;
-                case 2:
-                    color.red = 0;
-                    color.green = 0;
-                    color.blue = led_cnt;
-                break;
-                case 3:
-                    color.red = led_cnt;
-                    color.green = led_cnt;
-                    color.blue = led_cnt;
-                break;
-                default:
-                    led_sel = 0;
-                break;
-            }
+            auto color = swatch_pulser.TickStep();
             std::array<alfalfa::lib::Color, 8> colors;
             colors.fill(color);
             ws2812b.SetColor(colors);
-            led_cnt += led_up ? +1 : -1;
-            switch (led_cnt)
-            {
-                case 0x00:
-                    led_up = true;
-                    led_sel += 1;
-                    led_sel %= 4;
-                break;
-                case 0xFF:
-                    led_up = false;
-                break;
-                default:
-                break;
-            }
         }
 
         if (trxs.Mark())
         {
             try
             {
-                const auto [temp, pres] = sensor->ReadCombo();
+                const auto [temp, pres] = bmp280->ReadCombo();
                 Logln(std::format("BMP280: {:.2f} {:.0f|h}", temp, pres));
                 const auto [humidity, temperature] = aht10->ReadHumidityAndTemperature();
                 Logln(std::format("AHT10:  {:.2f} {:.2f}", humidity, temperature));
@@ -202,6 +229,10 @@ void app_main()
                 Logln(std::format("ADS1015 voltage: {:.3f}", an_value_read_10));
                 const auto an_value_read_11 = ads1115->GetVoltage();
                 Logln(std::format("ADS1115 voltage: {:.3f}", an_value_read_11));
+                const auto als_value = veml7700->ReadAlsData();
+                Logln(std::format("VEML7700 ALS value: {}", als_value));
+                const auto white_value = veml7700->ReadWhiteChannelData();
+                Logln(std::format("VEML7700 White channel value: {}", white_value));
             }
             catch (const std::exception& e)
             {
