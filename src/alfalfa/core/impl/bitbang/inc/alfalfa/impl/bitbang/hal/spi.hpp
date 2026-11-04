@@ -28,10 +28,12 @@ namespace spi
             std::unique_ptr<::alfalfa::hal::dio::iOutput>&& chip_select_n,
             uint32_t nop_multiplier = 1);
         virtual ~Slave() override = default;
-        void Transceive(const uint8_t data) override;
-        void Transceive(const uint8_t data, uint8_t& target) override;
-        void Transceive(const std::span<const uint8_t> data) override;
-        void Transceive(const std::span<const uint8_t> data, std::span<uint8_t> target) override;
+        void Transmit(const std::byte data) override;
+        void Transceive(const std::byte data, std::byte& target) override;
+        void Receive(std::byte& target) override;
+        void Transmit(const std::span<const std::byte> data) override;
+        void Transceive(const std::span<const std::byte> data, std::span<std::byte> target) override;
+        void Receive(std::span<std::byte> target) override;
     private:
         std::shared_ptr<Module> _module;
         std::unique_ptr<::alfalfa::hal::dio::iOutput> _chip_select_n;
