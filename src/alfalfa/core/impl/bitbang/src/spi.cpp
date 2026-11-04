@@ -24,27 +24,37 @@ namespace spi
         _chip_select_n->Write(true);
     }
 
-    void Slave::Transceive(const uint8_t data)
+    void Slave::Transmit(const std::byte data)
     {
         _chip_select_n->Write(false);
         Timekeeper::Nop(1 * _nop_multiplier);
-        __WriteByte(data);
+        std::ignore = __WriteByte(std::to_integer<uint8_t>(data));
         _module->_clk->Write(false);
         _module->_mosi->Write(false);
         _chip_select_n->Write(true);
     }
 
-    void Slave::Transceive(const uint8_t data, uint8_t& target)
+    void Slave::Transceive(const std::byte data, std::byte& target)
     {
         _chip_select_n->Write(false);
         Timekeeper::Nop(1 * _nop_multiplier);
-        target = __WriteByte(data);
+        target = static_cast<std::byte>(__WriteByte(std::to_integer<uint8_t>(data)));
         _module->_clk->Write(false);
         _module->_mosi->Write(false);
         _chip_select_n->Write(true);
     }
 
-    void Slave::Transceive(const std::span<const uint8_t> data)
+    void Slave::Receive(std::byte& target)
+    {
+        _chip_select_n->Write(false);
+        Timekeeper::Nop(1 * _nop_multiplier);
+        target = static_cast<std::byte>(__WriteByte(0x00));
+        _module->_clk->Write(false);
+        _module->_mosi->Write(false);
+        _chip_select_n->Write(true);
+    }
+
+    void Slave::Transmit(const std::span<const std::byte> data)
     {
         if (data.size() == 0)
         {
@@ -54,14 +64,14 @@ namespace spi
         Timekeeper::Nop(1 * _nop_multiplier);
         for (auto& byte : data)
         {
-            std::ignore = __WriteByte(byte);
+            std::ignore = __WriteByte(std::to_integer<uint8_t>(byte));
         }
         _module->_clk->Write(false);
         _module->_mosi->Write(false);
         _chip_select_n->Write(true);
     }
 
-    void Slave::Transceive(const std::span<const uint8_t> data, std::span<uint8_t> target)
+    void Slave::Transceive(const std::span<const std::byte> data, std::span<std::byte> target)
     {
         if (data.size() == 0)
         {
@@ -74,11 +84,28 @@ namespace spi
 
         Timekeeper::Nop(1 * _nop_multiplier);
         _chip_select_n->Write(false);
-        auto idx = 0;
+        auto idx = std::size_t{0};
         for (auto& byte : data)
         {
-            target[idx] = __WriteByte(byte);
+            target[idx] = static_cast<std::byte>(__WriteByte(std::to_integer<uint8_t>(byte)));
             idx++;
+        }
+        _module->_clk->Write(false);
+        _module->_mosi->Write(false);
+        _chip_select_n->Write(true);
+    }
+
+    void Slave::Receive(std::span<std::byte> target)
+    {
+        if (target.size() == 0)
+        {
+            return;
+        }
+        _chip_select_n->Write(false);
+        Timekeeper::Nop(1 * _nop_multiplier);
+        for (auto& byte : target)
+        {
+            byte = static_cast<std::byte>(__WriteByte(0x00));
         }
         _module->_clk->Write(false);
         _module->_mosi->Write(false);
